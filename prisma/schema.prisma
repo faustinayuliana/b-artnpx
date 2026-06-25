@@ -49,6 +49,7 @@ model User {
   receivedMessages Message[] @relation("receiver")
   bids Bid[]
   orders Order[]
+  reviews Review[]
 }
 
 model Art {
@@ -71,6 +72,7 @@ model Art {
   favorites Favorite[]
   auctions Auction[]
   orderItems OrderItem[]
+  reviews Review[]
 }
 
 model CartItem {
@@ -262,4 +264,15 @@ enum OrderStatus {
   PENDING
   COMPLETED
   CANCELLED
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String
+  userId    String
+  artId     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  art       Art      @relation(fields: [artId], references: [id], onDelete: Cascade)
 }

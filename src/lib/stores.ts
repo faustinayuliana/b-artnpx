@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface UserState {
   id: string;
@@ -24,6 +25,13 @@ interface CartStore {
   setCount: (value: number) => void;
 }
 
+interface PreferencesStore {
+  theme: "light" | "dark" | "system";
+  language: "en" | "id";
+  setTheme: (theme: "light" | "dark" | "system") => void;
+  setLanguage: (language: "en" | "id") => void;
+}
+
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   isGuest: false,
@@ -36,3 +44,17 @@ export const useCartStore = create<CartStore>((set) => ({
   count: 0,
   setCount: (value) => set({ count: value }),
 }));
+
+export const usePreferencesStore = create<PreferencesStore>()(
+  persist(
+    (set) => ({
+      theme: "dark", // default premium theme
+      language: "en", // default language
+      setTheme: (theme) => set({ theme }),
+      setLanguage: (language) => set({ language }),
+    }),
+    {
+      name: "b-art-preferences",
+    }
+  )
+);

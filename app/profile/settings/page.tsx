@@ -25,7 +25,7 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { useAuthStore } from "@/src/lib/stores";
+import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function ProfileSettingsPage() {
@@ -33,7 +33,10 @@ export default function ProfileSettingsPage() {
   const { user, setUser, reset: resetAuth } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "addresses" | "payments" | "security" | "danger">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "addresses" | "payments" | "preferences" | "security" | "danger">("profile");
+
+  // Preferences
+  const { theme, language, setTheme, setLanguage } = usePreferencesStore();
 
   // Profile fields
   const [username, setUsername] = useState("");
@@ -416,6 +419,7 @@ export default function ProfileSettingsPage() {
             { key: "profile" as const, label: "Profile", icon: User },
             { key: "addresses" as const, label: "Addresses", icon: MapPin },
             { key: "payments" as const, label: "Payments & Wallet", icon: CreditCard },
+            { key: "preferences" as const, label: "Preferences", icon: Globe },
             { key: "security" as const, label: "Security", icon: Shield },
             { key: "danger" as const, label: "Danger Zone", icon: AlertTriangle },
           ].map(({ key, label, icon: Icon }) => (
@@ -878,6 +882,73 @@ export default function ProfileSettingsPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* PREFERENCES TAB */}
+        {activeTab === "preferences" && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Theme Preference */}
+            <div className="p-6 bg-zinc-900/40 rounded-2xl border border-zinc-800 space-y-4">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Globe size={18} className="text-purple-400" /> Theme Preference
+              </h3>
+              <p className="text-xs text-zinc-500">Choose how B.Art appears on your device. Persisted locally.</p>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { key: "light" as const, label: "Light Theme", desc: "Clean and bright", logo: "☀️" },
+                  { key: "dark" as const, label: "Dark Theme", desc: "Cozy and premium", logo: "🌙" },
+                  { key: "system" as const, label: "System Theme", desc: "Matches device", logo: "🖥️" },
+                ].map(({ key, label, desc, logo }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setTheme(key)}
+                    className={`flex flex-col items-center justify-center p-5 rounded-2xl border text-center transition ${
+                      theme === key
+                        ? "bg-purple-600/10 border-purple-500 text-white font-bold shadow-lg"
+                        : "bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                    }`}
+                  >
+                    <span className="text-2xl mb-2">{logo}</span>
+                    <span className="text-sm font-semibold">{label}</span>
+                    <span className="text-[10px] text-zinc-500 mt-1">{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Language Preference */}
+            <div className="p-6 bg-zinc-900/40 rounded-2xl border border-zinc-800 space-y-4">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Globe size={18} className="text-purple-400" /> Language / Bahasa
+              </h3>
+              <p className="text-xs text-zinc-500">Select your preferred language. Persisted locally.</p>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: "en" as const, label: "English", desc: "Global communication", flag: "🇺🇸" },
+                  { key: "id" as const, label: "Bahasa Indonesia", desc: "Komunikasi lokal", flag: "🇮🇩" },
+                ].map(({ key, label, desc, flag }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(key);
+                      toast.success(`Language set to ${label}`);
+                    }}
+                    className={`flex flex-col items-center justify-center p-5 rounded-2xl border text-center transition ${
+                      language === key
+                        ? "bg-purple-600/10 border-purple-500 text-white font-bold shadow-lg"
+                        : "bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                    }`}
+                  >
+                    <span className="text-2xl mb-2">{flag}</span>
+                    <span className="text-sm font-semibold">{label}</span>
+                    <span className="text-[10px] text-zinc-500 mt-1">{desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}

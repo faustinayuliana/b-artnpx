@@ -185,7 +185,7 @@ export async function POST(request: Request) {
     if (action === "payment-create") {
       const { type, bank, number, isPrimary } = body;
 
-      const validBanks = ["Mandiri", "BCA", "BNI", "BRI", "OVO", "Dana", "ShopeePay", "B.Art Wallet"];
+      const validBanks = ["Mandiri", "BCA", "BNI", "BRI", "OVO", "Dana", "ShopeePay", "GoPay", "B.Art Wallet"];
       if (!validBanks.includes(bank)) {
         return NextResponse.json({ error: "Invalid payment provider" }, { status: 400 });
       }
@@ -210,6 +210,34 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json(newPayment);
+    }
+
+    if (action === "payment-update") {
+      const { id, type, bank, number, isPrimary } = body;
+
+      const validBanks = ["Mandiri", "BCA", "BNI", "BRI", "OVO", "Dana", "ShopeePay", "GoPay", "B.Art Wallet"];
+      if (!validBanks.includes(bank)) {
+        return NextResponse.json({ error: "Invalid payment provider" }, { status: 400 });
+      }
+
+      if (isPrimary) {
+        await prisma.payment.updateMany({
+          where: { userId: user.id },
+          data: { isPrimary: false },
+        });
+      }
+
+      const updatedPayment = await prisma.payment.update({
+        where: { id, userId: user.id },
+        data: {
+          type,
+          bank,
+          number,
+          isPrimary,
+        },
+      });
+
+      return NextResponse.json(updatedPayment);
     }
 
     if (action === "payment-delete") {

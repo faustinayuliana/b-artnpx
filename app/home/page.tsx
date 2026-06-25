@@ -19,7 +19,8 @@ import {
   Minus,
   Sparkles,
   Filter,
-  X
+  X,
+  HelpCircle
 } from "lucide-react";
 import { useAuthStore } from "@/src/lib/stores";
 import { useCartStore } from "@/src/lib/cartStore";
@@ -55,11 +56,17 @@ function HomePageContent() {
   const [selectedPriceRange, setSelectedPriceRange] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
+  // Search suggestions and recents states
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
+
   // UI States
   const [arts, setArts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAuctionModal, setShowAuctionModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -79,6 +86,17 @@ function HomePageContent() {
     const isGuestQuery = searchParams.get("guest") === "true";
     if (isGuestQuery) {
       setGuest(true);
+    }
+
+    // Load search history and recents from localStorage
+    try {
+      const historyStr = localStorage.getItem("b-art-search-history");
+      if (historyStr) setSearchHistory(JSON.parse(historyStr));
+      
+      const recentsStr = localStorage.getItem("b-art-recents");
+      if (recentsStr) setRecentlyViewed(JSON.parse(recentsStr));
+    } catch (e) {
+      console.error("Failed to load search info:", e);
     }
   }, [searchParams, setGuest]);
 
@@ -213,10 +231,36 @@ function HomePageContent() {
     router.push("/checkout");
   };
 
-  const handleLogout = async () => {
-    await fetch("/api/auth?action=logout", { method: "POST" });
-    resetAuth();
-    router.push("/");
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      let history = localStorage.getItem("b-art-search-history") 
+        ? JSON.parse(localStorage.getItem("b-art-search-history")!) 
+        : [];
+      history = history.filter((h: string) => h !== searchQuery.trim());
+      history.unshift(searchQuery.trim());
+      history = history.slice(0, 5);
+      localStorage.setItem("b-art-search-history", JSON.stringify(history));
+      setSearchHistory(history);
+    }
+    setSearchFocused(false);
+    fetchArts();
+  };
+
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    try {
+      await fetch("/api/auth?action=logout", { method: "POST" });
+      resetAuth();
+      setShowLogoutConfirm(false);
+      router.push("/");
+      toast.success("Logged out successfully");
+    } catch {
+      toast.error("Failed to log out");
+    }
   };
 
   return (
@@ -225,6 +269,31 @@ function HomePageContent() {
       
       {/* Login Required Modal */}
       <LoginRequiredModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
+
+      {/* Logout Confirmation Modal */}
+      <Modal open={showLogoutConfirm} title="Logout" onClose={() => setShowLogoutConfirm(false)}>
+        <div className="space-y-4 p-2 text-zinc-800">
+          <p className="text-sm text-zinc-600">
+            Are you sure you want to log out of B.Art? You will need to sign in again to access your cart, favorites, and profile.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              className="flex-grow py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-full transition text-sm"
+              onClick={() => setShowLogoutConfirm(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="flex-grow py-3 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-full transition text-sm shadow-lg shadow-red-600/20"
+              onClick={confirmLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Live Auction Info Modal */}
       <Modal open={showAuctionModal} title="Upcoming Auctions" onClose={() => setShowAuctionModal(false)}>
@@ -264,23 +333,104 @@ function HomePageContent() {
 
         {/* Search Bar */}
         <form 
-          className="flex-1 max-w-lg relative hidden md:block"
-          onSubmit={(e) => { e.preventDefault(); fetchArts(); }}
+          className="flex-1 max-w-lg relative hidden md:block animate-fadeIn"
+          onSubmit={handleSearchSubmit}
         >
           <input
             type="text"
             placeholder="Search arts, artists, style..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
             className="w-full bg-zinc-900/60 border border-zinc-800 rounded-full py-2.5 pl-5 pr-12 text-sm focus:outline-none focus:border-purple-500/50 transition focus:ring-1 focus:ring-purple-500/20 text-white"
           />
           <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-zinc-400 hover:text-purple-400 transition">
             <Search size={18} />
           </button>
+
+          {/* Search Suggestions Dropdown */}
+          {searchFocused && (searchHistory.length > 0 || recentlyViewed.length > 0) && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-2xl z-50 space-y-4 text-left">
+              {searchHistory.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Search History</span>
+                    <button 
+                      type="button" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        localStorage.removeItem("b-art-search-history");
+                        setSearchHistory([]);
+                      }}
+                      className="text-[10px] text-zinc-500 hover:text-red-400 transition font-semibold"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {searchHistory.map((query) => (
+                      <button
+                        key={query}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery(query);
+                          setTimeout(() => {
+                            const params = new URLSearchParams();
+                            params.append("search", query);
+                            fetch(`/api/arts?${params.toString()}`)
+                              .then(res => res.json())
+                              .then(data => setArts(data));
+                          }, 50);
+                        }}
+                        className="text-xs px-3 py-1.5 rounded-full bg-zinc-800 hover:bg-zinc-750 text-zinc-350 hover:text-white transition"
+                      >
+                        {query}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recentlyViewed.length > 0 && (
+                <div className="space-y-2 border-t border-zinc-850/50 pt-3">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Recently Viewed Artworks</span>
+                  <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
+                    {recentlyViewed.map((artItem) => (
+                      <Link
+                        key={artItem.id}
+                        href={`/art/${artItem.id}`}
+                        className="flex items-center gap-2.5 p-2 bg-zinc-850/40 border border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-800/50 rounded-xl transition min-w-[140px] max-w-[180px] text-left"
+                      >
+                        <img 
+                          src={artItem.image} 
+                          alt={artItem.title} 
+                          className="w-8 h-8 rounded-lg object-cover border border-zinc-750 shrink-0" 
+                        />
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-[10px] font-bold text-white truncate leading-tight">{artItem.title}</h4>
+                          <p className="text-[9px] text-purple-450 font-bold mt-0.5">{formatCurrency(artItem.price)}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </form>
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Help Center Icon */}
+          <Link 
+            href="/help" 
+            className="p-2 hover:bg-zinc-900 rounded-xl transition text-zinc-400 hover:text-zinc-200"
+            title="Help & FAQ"
+          >
+            <HelpCircle size={20} />
+          </Link>
+
           {/* Live Auction Indicator (Gray/No auction) */}
           <button 
             type="button" 
@@ -383,6 +533,7 @@ function HomePageContent() {
                   <>
                     <Link href="/profile" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><UserIcon size={16} /> My Profile</Link>
                     <Link href="/profile/settings" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><Settings size={16} /> Settings</Link>
+                    <Link href="/help" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><HelpCircle size={16} /> Help & FAQ</Link>
                     {user?.role === "ARTIST" ? (
                       <Link href="/artist/manage" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><Gavel size={16} /> Manage Arts</Link>
                     ) : (

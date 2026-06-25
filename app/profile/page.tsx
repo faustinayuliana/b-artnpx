@@ -21,6 +21,7 @@ import {
 import { useAuthStore } from "@/src/lib/stores";
 import { formatCurrency } from "@/src/lib/format";
 import toast, { Toaster } from "react-hot-toast";
+import { Modal } from "@/src/components/modal";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"orders" | "favorites" | "wallet">("orders");
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,10 +67,20 @@ export default function ProfilePage() {
     fetchExtras();
   }, [user]);
 
-  const handleLogout = async () => {
-    await fetch("/api/auth?action=logout", { method: "POST" });
-    resetAuth();
-    router.push("/");
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    try {
+      await fetch("/api/auth?action=logout", { method: "POST" });
+      resetAuth();
+      setShowLogoutConfirm(false);
+      router.push("/");
+      toast.success("Logged out successfully");
+    } catch {
+      toast.error("Failed to log out");
+    }
   };
 
   const BADGE_COLORS: Record<string, string> = {
@@ -95,6 +107,35 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
       <Toaster position="top-right" />
+
+      {/* Logout Confirmation Modal */}
+      <Modal 
+        open={showLogoutConfirm} 
+        title="Logout" 
+        onClose={() => setShowLogoutConfirm(false)}
+      >
+        <div className="space-y-4 p-2 text-zinc-800">
+          <p className="text-sm text-zinc-600 leading-relaxed">
+            Are you sure you want to log out of B.Art? You will need to sign in again to access your dashboard, settings, and cart.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              className="flex-1 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-full transition text-sm"
+              onClick={() => setShowLogoutConfirm(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-full transition text-sm shadow-lg shadow-red-600/20"
+              onClick={confirmLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* HEADER */}
       <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl px-4 sm:px-8 py-4 flex items-center justify-between">

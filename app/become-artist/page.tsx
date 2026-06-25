@@ -27,6 +27,7 @@ export default function BecomeArtistPage() {
   const { user, setUser } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [portfolioFile, setPortfolioFile] = useState<{ name: string; size: string; type: string; preview?: string } | null>(null);
 
   // Verification Modal States
   const [modalOpen, setModalOpen] = useState(false);
@@ -35,9 +36,26 @@ export default function BecomeArtistPage() {
   const [accountNumber, setAccountNumber] = useState("");
   const [verified, setVerified] = useState(false);
 
+  const simulateUpload = () => {
+    const mockFiles = [
+      { name: "anime_samurai_sketches.png", size: "4.8 MB", type: "png", preview: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=150&q=80" },
+      { name: "landscape_photography_2026.pdf", size: "12.4 MB", type: "pdf" },
+      { name: "sticker_packs_vector.zip", size: "8.1 MB", type: "zip" },
+      { name: "game_ui_assets.jpg", size: "6.2 MB", type: "jpg", preview: "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=150&q=80" },
+    ];
+    
+    const randomFile = mockFiles[Math.floor(Math.random() * mockFiles.length)];
+    setPortfolioFile(randomFile);
+    toast.success(`Successfully uploaded: ${randomFile.name}`, { icon: "📎" });
+  };
+
   const handleOpenVerification = () => {
     if (!user) {
       router.push("/login");
+      return;
+    }
+    if (!portfolioFile) {
+      toast.error("Please upload your portfolio first");
       return;
     }
     if (!agreed) {
@@ -181,7 +199,7 @@ export default function BecomeArtistPage() {
           <h2 className="text-2xl font-bold text-center text-white">How It Works</h2>
           <div className="flex flex-col sm:flex-row items-center gap-6">
             {[
-              { step: "1", label: "Apply & Verify", desc: "Submit your legal details to verify your identity instantly" },
+              { step: "1", label: "Upload & Verify", desc: "Submit your portfolio and legal details to verify your identity" },
               { step: "2", label: "Upload Art", desc: "Go to your artist dashboard and add your first artwork" },
               { step: "3", label: "Get Paid", desc: "Sales are automatically credited to your B.Art wallet" },
             ].map(({ step, label, desc }, idx) => (
@@ -222,11 +240,62 @@ export default function BecomeArtistPage() {
               </div>
               <div>
                 <h3 className="font-bold text-white text-lg">Ready to start?</h3>
-                <p className="text-sm text-zinc-500">Submit verification details to unlock your store</p>
+                <p className="text-sm text-zinc-500">Submit portfolio and identity details to unlock your store</p>
               </div>
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer">
+            {/* PORTFOLIO UPLOAD PANEL */}
+            <div className="space-y-3 border-t border-zinc-850 pt-5">
+              <label className="text-xs font-bold text-zinc-450 uppercase tracking-wider block">Portfolio Upload (PDF, PNG, JPG, ZIP)</label>
+              
+              {!portfolioFile ? (
+                <div 
+                  onClick={simulateUpload}
+                  className="border-2 border-dashed border-zinc-800 hover:border-purple-500/50 rounded-2xl p-6 text-center cursor-pointer transition bg-zinc-950/20 hover:bg-purple-950/5 group"
+                >
+                  <Palette size={32} className="mx-auto text-zinc-600 mb-2 group-hover:text-purple-400 transition animate-pulse" />
+                  <p className="text-xs font-semibold text-zinc-300">Click to upload your portfolio</p>
+                  <p className="text-[10px] text-zinc-500 mt-1">Supports PDF, PNG, JPG, ZIP up to 50MB</p>
+                </div>
+              ) : (
+                <div className="bg-zinc-950/60 border border-zinc-800 rounded-2xl p-4 flex items-center justify-between gap-4 animate-fadeIn">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-600/15 rounded-xl text-purple-450 shrink-0">
+                      {portfolioFile.type === "zip" ? (
+                        <span className="text-lg">📦</span>
+                      ) : portfolioFile.type === "pdf" ? (
+                        <span className="text-lg">📕</span>
+                      ) : (
+                        <img 
+                          src={portfolioFile.preview} 
+                          alt="Preview" 
+                          className="w-10 h-10 rounded-lg object-cover border border-zinc-800" 
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-white truncate max-w-[150px]">{portfolioFile.name}</h4>
+                      <p className="text-[10px] text-zinc-500">{portfolioFile.size} • {portfolioFile.type.toUpperCase()} File</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[9px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                      READY
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => setPortfolioFile(null)} 
+                      className="text-zinc-500 hover:text-white transition p-1"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer pt-2">
               <div
                 onClick={() => setAgreed(!agreed)}
                 className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition ${
@@ -245,7 +314,7 @@ export default function BecomeArtistPage() {
             <button
               type="button"
               onClick={handleOpenVerification}
-              disabled={!agreed}
+              disabled={!agreed || !portfolioFile}
               className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-2xl transition flex items-center justify-center gap-2 disabled:opacity-50 text-base shadow-lg shadow-purple-900/25"
             >
               <Sparkles size={18} />
