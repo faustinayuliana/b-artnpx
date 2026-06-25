@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -41,7 +41,7 @@ const PRICES = [
 ];
 const CATEGORIES = ["All", "Poster", "Wallpaper", "Sticker", "Anime Graph", "Illustration", "Digital Asset", "Open Commission"];
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isGuest, setUser, setGuest, reset: resetAuth } = useAuthStore();
@@ -888,5 +888,20 @@ function Modal({ open, title, onClose, children }: ModalProps) {
         <div>{children}</div>
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-955 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-purple-500 border-t-transparent"></div>
+          <p className="text-zinc-550 text-sm tracking-widest font-mono">LOADING GALLERY...</p>
+        </div>
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
   );
 }
