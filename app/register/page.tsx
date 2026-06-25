@@ -28,21 +28,32 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    const response = await fetch("/api/auth?action=register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
+    try {
+      const response = await fetch("/api/auth?action=register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
 
-    const result = await response.json();
-    setLoading(false);
+      let result;
+      try {
+        result = await response.json();
+      } catch {
+        result = { error: "Terjadi kesalahan pada server (Server Error)." };
+      }
 
-    if (!response.ok) {
-      setError(result.error || "Unable to register.");
-      return;
+      setLoading(false);
+
+      if (!response.ok) {
+        setError(result.error || "Unable to register.");
+        return;
+      }
+
+      router.push("/home");
+    } catch (err) {
+      setLoading(false);
+      setError("Gagal terhubung ke server.");
     }
-
-    router.push("/home");
   };
 
   return (
