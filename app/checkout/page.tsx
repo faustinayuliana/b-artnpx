@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -21,14 +20,17 @@ import {
   ShoppingBag,
   Wallet,
 } from "lucide-react";
-import { useAuthStore } from "@/src/lib/stores";
+import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
 import { useCartStore } from "@/src/lib/cartStore";
 import { formatCurrency } from "@/src/lib/format";
+import { translations } from "@/src/lib/translations";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, isGuest, setUser } = useAuthStore();
+  const { language } = usePreferencesStore();
+  const t = translations[language] || translations.en;
   const cartStore = useCartStore();
 
   // User relations from API
@@ -116,7 +118,7 @@ export default function CheckoutPage() {
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addrName || !addrPhone || !addrAddress || !addrCity || !addrProvince || !addrPostalCode) {
-      toast.error("All fields are required");
+      toast.error(language === "id" ? "Semua kolom wajib diisi" : "All fields are required");
       return;
     }
     try {
@@ -135,7 +137,7 @@ export default function CheckoutPage() {
       });
 
       if (res.ok) {
-        toast.success("Address added");
+        toast.success(language === "id" ? "Alamat ditambahkan" : "Address added");
         setShowAddAddress(false);
         resetAddressForm();
         // Reload and set newly added as selected
@@ -148,10 +150,10 @@ export default function CheckoutPage() {
         }
       } else {
         const err = await res.json();
-        toast.error(err.error || "Failed to add address");
+        toast.error(err.error || (language === "id" ? "Gagal menambahkan alamat" : "Failed to add address"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     }
   };
 
@@ -169,7 +171,7 @@ export default function CheckoutPage() {
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payNumber) {
-      toast.error("Account number is required");
+      toast.error(language === "id" ? "Nomor rekening wajib diisi" : "Account number is required");
       return;
     }
     try {
@@ -185,7 +187,7 @@ export default function CheckoutPage() {
       });
 
       if (res.ok) {
-        toast.success("Payment method added");
+        toast.success(language === "id" ? "Metode pembayaran ditambahkan" : "Payment method added");
         setShowAddPayment(false);
         setPayNumber("");
         setPayIsPrimary(false);
@@ -199,10 +201,10 @@ export default function CheckoutPage() {
         }
       } else {
         const err = await res.json();
-        toast.error(err.error || "Failed to add payment");
+        toast.error(err.error || (language === "id" ? "Gagal menambahkan pembayaran" : "Failed to add payment"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     }
   };
 
@@ -211,7 +213,7 @@ export default function CheckoutPage() {
     e.preventDefault();
     const amount = parseFloat(topUpAmount);
     if (isNaN(amount) || amount <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error(language === "id" ? "Silakan masukkan jumlah yang valid" : "Please enter a valid amount");
       return;
     }
     setToppingUp(true);
@@ -225,14 +227,14 @@ export default function CheckoutPage() {
       if (res.ok) {
         setUser(data);
         setWalletBalance(data.wallet || 0);
-        toast.success(`Successfully topped up Rp${amount.toLocaleString()}`);
+        toast.success(language === "id" ? `Berhasil mengisi ulang Rp${amount.toLocaleString()}` : `Successfully topped up Rp${amount.toLocaleString()}`);
         setTopUpAmount("");
         setShowTopUp(false);
       } else {
-        toast.error(data.error || "Top up failed");
+        toast.error(data.error || (language === "id" ? "Top up gagal" : "Top up failed"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     } finally {
       setToppingUp(false);
     }
@@ -241,15 +243,15 @@ export default function CheckoutPage() {
   // Simulated Checkout execution
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
-      toast.error("Please select a shipping address");
+      toast.error(language === "id" ? "Silakan pilih alamat pengiriman" : "Please select a shipping address");
       return;
     }
     if (!selectedPayment) {
-      toast.error("Please select a payment method");
+      toast.error(language === "id" ? "Silakan pilih metode pembayaran" : "Please select a payment method");
       return;
     }
     if (cartStore.items.length === 0) {
-      toast.error("Your cart is empty");
+      toast.error(language === "id" ? "Keranjang Anda kosong" : "Your cart is empty");
       return;
     }
 
@@ -265,7 +267,11 @@ export default function CheckoutPage() {
     if (isWalletPayment && walletBalance < total) {
       // Transition to Cancelled state due to insufficient funds
       setSimulationState("cancelled");
-      setSimulationError(`Insufficient wallet balance. Total is Rp${total.toLocaleString()}, but your balance is Rp${walletBalance.toLocaleString()}.`);
+      setSimulationError(
+        language === "id"
+          ? `Saldo dompet tidak mencukupi. Totalnya adalah Rp${total.toLocaleString()}, tetapi saldo Anda adalah Rp${walletBalance.toLocaleString()}.`
+          : `Insufficient wallet balance. Total is Rp${total.toLocaleString()}, but your balance is Rp${walletBalance.toLocaleString()}.`
+      );
       return;
     }
 
@@ -292,11 +298,11 @@ export default function CheckoutPage() {
       } else {
         // Failed
         setSimulationState("cancelled");
-        setSimulationError(data.error || "Order execution failed");
+        setSimulationError(data.error || (language === "id" ? "Gagal mengeksekusi pesanan" : "Order execution failed"));
       }
     } catch (err: any) {
       setSimulationState("cancelled");
-      setSimulationError(err.message || "Something went wrong during database transaction");
+      setSimulationError(err.message || (language === "id" ? "Terjadi kesalahan saat transaksi database" : "Something went wrong during database transaction"));
     }
   };
 
@@ -307,10 +313,10 @@ export default function CheckoutPage() {
       {/* HEADER */}
       <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
         <Link href="/home" className="flex items-center gap-2 text-zinc-400 hover:text-white transition font-semibold text-sm">
-          <ChevronLeft size={18} /> Back to Gallery
+          <ChevronLeft size={18} /> {t.backToGallery}
         </Link>
         <span className="text-2xl font-bold font-serif bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent" style={{ fontFamily: "var(--font-playfair), serif" }}>
-          Checkout
+          {t.checkout}
         </span>
         <div className="w-24"></div>
       </header>
@@ -325,14 +331,14 @@ export default function CheckoutPage() {
           <div className="p-6 bg-zinc-900 border border-zinc-850 rounded-3xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-bold text-white text-base flex items-center gap-2">
-                <MapPin size={18} className="text-purple-400" /> Shipping Address
+                <MapPin size={18} className="text-purple-400" /> {t.shippingAddress}
               </h3>
               <button
                 type="button"
                 onClick={() => setAddressModalOpen(true)}
                 className="text-xs font-bold text-purple-450 hover:text-purple-400 transition"
               >
-                {addresses.length > 0 ? "Change Address" : "Add Address"}
+                {addresses.length > 0 ? t.changeAddress : t.addAddress}
               </button>
             </div>
 
@@ -343,7 +349,7 @@ export default function CheckoutPage() {
                   <span className="text-xs text-zinc-500 font-normal">({selectedAddress.phone})</span>
                   {selectedAddress.isPrimary && (
                     <span className="text-[9px] text-purple-400 font-bold uppercase tracking-wider bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
-                      Primary
+                      {t.primary}
                     </span>
                   )}
                 </h4>
@@ -352,13 +358,13 @@ export default function CheckoutPage() {
               </div>
             ) : (
               <div className="text-center py-6 bg-zinc-950 border border-dashed border-zinc-800 rounded-2xl">
-                <p className="text-xs text-zinc-500 mb-3">No shipping address selected.</p>
+                <p className="text-xs text-zinc-500 mb-3">{language === "id" ? "Belum ada alamat pengiriman terpilih." : "No shipping address selected."}</p>
                 <button
                   type="button"
                   onClick={() => { setShowAddAddress(true); setAddressModalOpen(true); }}
                   className="inline-flex items-center gap-1 py-2 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold border border-zinc-800 transition"
                 >
-                  <Plus size={12} /> Add Shipping Address
+                  <Plus size={12} /> {t.addAddress}
                 </button>
               </div>
             )}
@@ -368,14 +374,14 @@ export default function CheckoutPage() {
           <div className="p-6 bg-zinc-900 border border-zinc-850 rounded-3xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-bold text-white text-base flex items-center gap-2">
-                <CreditCard size={18} className="text-purple-400" /> Payment Method
+                <CreditCard size={18} className="text-purple-400" /> {t.paymentMethod}
               </h3>
               <button
                 type="button"
                 onClick={() => setPaymentModalOpen(true)}
                 className="text-xs font-bold text-purple-450 hover:text-purple-400 transition"
               >
-                {payments.length > 0 ? "Change Payment" : "Add Payment"}
+                {payments.length > 0 ? t.changePayment : t.addPayment}
               </button>
             </div>
 
@@ -386,7 +392,7 @@ export default function CheckoutPage() {
                     {selectedPayment.bank}
                     {selectedPayment.isPrimary && (
                       <span className="text-[9px] text-purple-400 font-bold uppercase tracking-wider bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
-                        Primary
+                        {t.primary}
                       </span>
                     )}
                   </h4>
@@ -394,7 +400,7 @@ export default function CheckoutPage() {
                 </div>
                 {selectedPayment.bank === "B.Art Wallet" && (
                   <div className="text-right">
-                    <span className="text-[10px] text-zinc-500 block">Balance</span>
+                    <span className="text-[10px] text-zinc-500 block">{t.balance}</span>
                     <span className="text-xs font-bold font-mono text-purple-400">
                       Rp{walletBalance.toLocaleString()}
                     </span>
@@ -403,13 +409,13 @@ export default function CheckoutPage() {
               </div>
             ) : (
               <div className="text-center py-6 bg-zinc-950 border border-dashed border-zinc-800 rounded-2xl">
-                <p className="text-xs text-zinc-500 mb-3">No payment method selected.</p>
+                <p className="text-xs text-zinc-500 mb-3">{language === "id" ? "Belum ada metode pembayaran terpilih." : "No payment method selected."}</p>
                 <button
                   type="button"
                   onClick={() => { setShowAddPayment(true); setPaymentModalOpen(true); }}
                   className="inline-flex items-center gap-1 py-2 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold border border-zinc-800 transition"
                 >
-                  <Plus size={12} /> Add Payment Method
+                  <Plus size={12} /> {t.addPayment}
                 </button>
               </div>
             )}
@@ -418,7 +424,7 @@ export default function CheckoutPage() {
           {/* REVIEW ITEMS */}
           <div className="p-6 bg-zinc-900 border border-zinc-850 rounded-3xl space-y-4">
             <h3 className="font-bold text-white text-base flex items-center gap-2">
-              <ShoppingBag size={18} className="text-purple-400" /> Review Items ({cartStore.items.length})
+              <ShoppingBag size={18} className="text-purple-400" /> {t.reviewItems} ({cartStore.items.length})
             </h3>
 
             <div className="divide-y divide-zinc-850">
@@ -448,29 +454,29 @@ export default function CheckoutPage() {
           
           {/* CALCULATION CARD */}
           <div className="p-6 bg-zinc-900 border border-zinc-850 rounded-3xl space-y-6 sticky top-28">
-            <h3 className="font-bold text-white text-base">Order Summary</h3>
+            <h3 className="font-bold text-white text-base">{t.orderSummary}</h3>
 
             <div className="space-y-3.5 border-b border-zinc-850 pb-6 text-sm">
               <div className="flex justify-between text-zinc-400">
-                <span>Subtotal</span>
+                <span>{t.subtotal}</span>
                 <span className="font-mono">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-zinc-400">
-                <span>Admin Fee</span>
+                <span>{t.adminFee}</span>
                 <span className="font-mono">{formatCurrency(adminFee)}</span>
               </div>
               <div className="flex justify-between text-zinc-400">
-                <span>Service Fee</span>
+                <span>{t.serviceFee}</span>
                 <span className="font-mono">{formatCurrency(serviceFee)}</span>
               </div>
               <div className="flex justify-between text-zinc-400">
-                <span>Tax (1%)</span>
+                <span>{t.tax}</span>
                 <span className="font-mono">{formatCurrency(tax)}</span>
               </div>
             </div>
 
             <div className="flex justify-between items-center text-white">
-              <span className="font-bold">Total Payment</span>
+              <span className="font-bold">{t.totalPayment}</span>
               <span className="text-xl font-extrabold text-purple-400 font-mono">
                 {formatCurrency(total)}
               </span>
@@ -482,7 +488,7 @@ export default function CheckoutPage() {
               disabled={cartStore.items.length === 0}
               className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-2xl transition flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20 disabled:opacity-50 text-base"
             >
-              <ShieldCheck size={18} /> Place Simulated Order
+              <ShieldCheck size={18} /> {t.placeOrder}
             </button>
           </div>
         </div>
@@ -494,8 +500,8 @@ export default function CheckoutPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
             <header className="p-6 border-b border-zinc-850 flex justify-between items-center">
               <div>
-                <h3 className="font-bold text-white text-base">Select Shipping Address</h3>
-                <p className="text-xs text-zinc-500">Choose where to deliver your digital assets</p>
+                <h3 className="font-bold text-white text-base">{t.selectShippingAddress}</h3>
+                <p className="text-xs text-zinc-500">{t.chooseDeliveryDesc}</p>
               </div>
               <button onClick={() => { setAddressModalOpen(false); setShowAddAddress(false); }} className="text-zinc-500 hover:text-white transition">
                 <X size={20} />
@@ -506,45 +512,45 @@ export default function CheckoutPage() {
               {showAddAddress ? (
                 /* INLINE FORM */
                 <form onSubmit={handleAddAddress} className="bg-zinc-950 p-5 rounded-2xl border border-zinc-850 space-y-4">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-widest">New Address Detail</h4>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-widest">{t.newAddressDetail}</h4>
                   
                   <div className="grid grid-cols-2 gap-3">
                     <input
-                      type="text" required placeholder="Recipient Name" value={addrName} onChange={(e) => setAddrName(e.target.value)}
+                      type="text" required placeholder={t.recipientName} value={addrName} onChange={(e) => setAddrName(e.target.value)}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-purple-500 text-white"
                     />
                     <input
-                      type="text" required placeholder="Recipient Phone" value={addrPhone} onChange={(e) => setAddrPhone(e.target.value)}
+                      type="text" required placeholder={t.recipientPhone} value={addrPhone} onChange={(e) => setAddrPhone(e.target.value)}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-purple-500 text-white"
                     />
                   </div>
                   
                   <textarea
-                    required placeholder="Street Address, Building, RT/RW" value={addrAddress} onChange={(e) => setAddrAddress(e.target.value)}
+                    required placeholder={t.streetAddress} value={addrAddress} onChange={(e) => setAddrAddress(e.target.value)}
                     rows={2} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:border-purple-500 text-white resize-none"
                   />
 
                   <div className="grid grid-cols-3 gap-3">
                     <input
-                      type="text" required placeholder="City" value={addrCity} onChange={(e) => setAddrCity(e.target.value)}
+                      type="text" required placeholder={t.city} value={addrCity} onChange={(e) => setAddrCity(e.target.value)}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-purple-500 text-white"
                     />
                     <input
-                      type="text" required placeholder="Province" value={addrProvince} onChange={(e) => setAddrProvince(e.target.value)}
+                      type="text" required placeholder={t.province} value={addrProvince} onChange={(e) => setAddrProvince(e.target.value)}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-purple-500 text-white"
                     />
                     <input
-                      type="text" required placeholder="Postal Code" value={addrPostalCode} onChange={(e) => setAddrPostalCode(e.target.value)}
+                      type="text" required placeholder={t.postalCode} value={addrPostalCode} onChange={(e) => setAddrPostalCode(e.target.value)}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-purple-500 text-white"
                     />
                   </div>
 
                   <div className="flex gap-2 justify-end pt-2">
                     <button type="button" onClick={() => setShowAddAddress(false)} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded-lg transition">
-                      Cancel
+                      {t.cancel}
                     </button>
                     <button type="submit" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition">
-                      Add Address
+                      {t.addAddress}
                     </button>
                   </div>
                 </form>
@@ -583,7 +589,7 @@ export default function CheckoutPage() {
                       onClick={() => setShowAddAddress(true)}
                       className="w-full py-3 bg-zinc-950 border border-dashed border-zinc-800 hover:border-zinc-700 rounded-2xl text-xs font-semibold text-zinc-400 hover:text-white transition flex items-center justify-center gap-1.5"
                     >
-                      <Plus size={14} /> Add New Address
+                      <Plus size={14} /> {t.addNewAddress}
                     </button>
                   )}
                 </div>
@@ -599,8 +605,8 @@ export default function CheckoutPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
             <header className="p-6 border-b border-zinc-850 flex justify-between items-center">
               <div>
-                <h3 className="font-bold text-white text-base">Select Payment Method</h3>
-                <p className="text-xs text-zinc-500">Choose your preferred payment method</p>
+                <h3 className="font-bold text-white text-base">{t.selectPaymentMethod}</h3>
+                <p className="text-xs text-zinc-500">{t.choosePreferredPayment}</p>
               </div>
               <button onClick={() => { setPaymentModalOpen(false); setShowAddPayment(false); setShowTopUp(false); }} className="text-zinc-500 hover:text-white transition">
                 <X size={20} />
@@ -612,11 +618,11 @@ export default function CheckoutPage() {
                 /* TOP UP FORM */
                 <form onSubmit={handleTopUp} className="bg-zinc-950 p-5 rounded-2xl border border-zinc-850 space-y-4">
                   <h4 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1">
-                    <Wallet size={13} className="text-purple-400" /> Wallet Top Up
+                    <Wallet size={13} className="text-purple-400" /> {t.walletTopUp}
                   </h4>
                   
                   <div className="space-y-2">
-                    <label className="text-[10px] font-semibold text-zinc-400 uppercase">Enter Amount (Rp)</label>
+                    <label className="text-[10px] font-semibold text-zinc-400 uppercase">{t.enterAmount}</label>
                     <input
                       type="number" required placeholder="500000" value={topUpAmount} onChange={(e) => setTopUpAmount(e.target.value)}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500 text-white font-mono"
@@ -625,21 +631,21 @@ export default function CheckoutPage() {
 
                   <div className="flex gap-2 justify-end pt-2">
                     <button type="button" onClick={() => setShowTopUp(false)} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded-lg transition">
-                      Cancel
+                      {t.cancel}
                     </button>
                     <button type="submit" disabled={toppingUp} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition">
-                      {toppingUp ? "Processing..." : "Confirm Top Up"}
+                      {toppingUp ? t.processing : t.confirmTopUp}
                     </button>
                   </div>
                 </form>
               ) : showAddPayment ? (
                 /* INLINE ADD FORM */
                 <form onSubmit={handleAddPayment} className="bg-zinc-950 p-5 rounded-2xl border border-zinc-850 space-y-4">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-widest">New Payment Method</h4>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-widest">{t.newPaymentMethod}</h4>
                   
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-semibold text-zinc-550 uppercase">Provider</label>
+                      <label className="text-[10px] font-semibold text-zinc-550 uppercase">{t.provider}</label>
                       <select
                         value={payBank} onChange={(e) => setPayBank(e.target.value)}
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-purple-500 text-white"
@@ -650,7 +656,7 @@ export default function CheckoutPage() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-semibold text-zinc-550 uppercase">Account Number</label>
+                      <label className="text-[10px] font-semibold text-zinc-555 uppercase">{t.accountNumber}</label>
                       <input
                         type="text" required placeholder="1234567890" value={payNumber} onChange={(e) => setPayNumber(e.target.value)}
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-purple-500 text-white"
@@ -660,10 +666,10 @@ export default function CheckoutPage() {
 
                   <div className="flex gap-2 justify-end pt-2">
                     <button type="button" onClick={() => setShowAddPayment(false)} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded-lg transition">
-                      Cancel
+                      {t.cancel}
                     </button>
                     <button type="submit" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition">
-                      Add Payment
+                      {t.addPayment}
                     </button>
                   </div>
                 </form>
@@ -688,7 +694,7 @@ export default function CheckoutPage() {
                       </div>
                       <div>
                         <h4 className="font-bold text-white text-xs sm:text-sm">B.Art Wallet</h4>
-                        <span className="text-[10px] text-zinc-500">Balance: Rp{walletBalance.toLocaleString()}</span>
+                        <span className="text-[10px] text-zinc-500">{t.balance}: Rp{walletBalance.toLocaleString()}</span>
                       </div>
                     </div>
                     
@@ -698,7 +704,7 @@ export default function CheckoutPage() {
                         onClick={(e) => { e.stopPropagation(); setShowTopUp(true); }}
                         className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-lg text-[10px] font-bold text-purple-400 transition"
                       >
-                        Top Up
+                        {t.topUp}
                       </button>
                       {selectedPayment?.bank === "B.Art Wallet" && (
                         <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center text-white shrink-0">
@@ -741,7 +747,7 @@ export default function CheckoutPage() {
                     onClick={() => setShowAddPayment(true)}
                     className="w-full py-3 bg-zinc-950 border border-dashed border-zinc-800 hover:border-zinc-700 rounded-2xl text-xs font-semibold text-zinc-400 hover:text-white transition flex items-center justify-center gap-1.5"
                   >
-                    <Plus size={14} /> Add Payment Method
+                    <Plus size={14} /> {t.addPayment}
                   </button>
                 </div>
               )}
@@ -763,10 +769,10 @@ export default function CheckoutPage() {
                   <Loader2 size={80} className="text-purple-500 animate-spin" />
                 </div>
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold tracking-[0.25em] text-purple-400 uppercase block">Step 1 of 3</span>
-                  <h3 className="text-xl font-bold text-white">Pending Verification</h3>
+                  <span className="text-[10px] font-bold tracking-[0.25em] text-purple-400 uppercase block">{t.step1of3}</span>
+                  <h3 className="text-xl font-bold text-white">{t.pendingVerification}</h3>
                   <p className="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed">
-                    Connecting to secure payment systems... verifying account credentials.
+                    {t.connectingSecurePayment}
                   </p>
                 </div>
               </div>
@@ -781,10 +787,10 @@ export default function CheckoutPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold tracking-[0.25em] text-blue-400 uppercase block">Step 2 of 3</span>
-                  <h3 className="text-xl font-bold text-white">Payment Paid</h3>
+                  <span className="text-[10px] font-bold tracking-[0.25em] text-blue-400 uppercase block">{t.step2of3}</span>
+                  <h3 className="text-xl font-bold text-white">{t.paymentPaid}</h3>
                   <p className="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed">
-                    Payment authenticated successfully! Finalizing order transaction and deducting wallet.
+                    {t.paymentAuthenticatedSuccess}
                   </p>
                 </div>
               </div>
@@ -798,20 +804,20 @@ export default function CheckoutPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold tracking-[0.25em] text-green-400 uppercase block">Finished</span>
-                  <h3 className="text-2xl font-extrabold text-white">Order Completed</h3>
+                  <span className="text-[10px] font-bold tracking-[0.25em] text-green-400 uppercase block">{t.finished}</span>
+                  <h3 className="text-2xl font-extrabold text-white">{t.orderCompleted}</h3>
                   <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto pt-1">
-                    Your order was successfully registered! Wallet balance and item stocks have been updated in Neon database.
+                    {t.orderSuccessReg}
                   </p>
                 </div>
 
                 <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-850 space-y-2 max-w-xs mx-auto">
                   <div className="flex justify-between text-[11px] text-zinc-500 font-mono">
-                    <span>Payment:</span>
+                    <span>{t.paymentLabel}</span>
                     <span className="text-zinc-300">{selectedPayment?.bank}</span>
                   </div>
                   <div className="flex justify-between text-[11px] text-zinc-500 font-mono">
-                    <span>Total Bill:</span>
+                    <span>{t.totalBill}</span>
                     <span className="text-purple-400 font-bold">{formatCurrency(total)}</span>
                   </div>
                 </div>
@@ -825,7 +831,7 @@ export default function CheckoutPage() {
                     }}
                     className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl transition text-sm"
                   >
-                    View Order in Profile
+                    {t.viewOrderProfile}
                   </button>
                   <button
                     type="button"
@@ -833,9 +839,9 @@ export default function CheckoutPage() {
                       setSimulationState("idle");
                       router.push("/home");
                     }}
-                    className="w-full py-3 bg-zinc-800 hover:bg-zinc-750 text-zinc-400 hover:text-white font-semibold rounded-xl transition text-xs"
+                    className="w-full py-3 bg-zinc-800 hover:bg-zinc-750 text-zinc-450 hover:text-white font-semibold rounded-xl transition text-xs"
                   >
-                    Back to Gallery
+                    {t.backToGallery}
                   </button>
                 </div>
               </div>
@@ -849,10 +855,10 @@ export default function CheckoutPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold tracking-[0.25em] text-red-400 uppercase block">Cancelled</span>
-                  <h3 className="text-2xl font-bold text-white">Order Cancelled</h3>
+                  <span className="text-[10px] font-bold tracking-[0.25em] text-red-400 uppercase block">{t.cancelled}</span>
+                  <h3 className="text-2xl font-bold text-white">{t.orderCancelled}</h3>
                   <p className="text-xs text-red-400/90 leading-relaxed max-w-xs mx-auto pt-1">
-                    {simulationError || "The order could not be completed successfully."}
+                    {simulationError || t.insufficientFunds}
                   </p>
                 </div>
 
@@ -867,7 +873,7 @@ export default function CheckoutPage() {
                       }}
                       className="w-full py-3.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition text-sm"
                     >
-                      Top Up Wallet Balance
+                      {t.topUpWalletBalance}
                     </button>
                   )}
                   <button
@@ -875,7 +881,7 @@ export default function CheckoutPage() {
                     onClick={() => setSimulationState("idle")}
                     className="w-full py-3 bg-zinc-800 hover:bg-zinc-750 text-zinc-450 hover:text-white font-semibold rounded-xl transition text-xs"
                   >
-                    Modify Payment / Address
+                    {t.modifyPaymentAddress}
                   </button>
                 </div>
               </div>

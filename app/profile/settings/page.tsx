@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
+import { translations } from "@/src/lib/translations";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function ProfileSettingsPage() {
@@ -37,6 +38,7 @@ export default function ProfileSettingsPage() {
 
   // Preferences
   const { theme, language, setTheme, setLanguage } = usePreferencesStore();
+  const t = translations[language] || translations.en;
 
   // Profile fields
   const [username, setUsername] = useState("");
@@ -118,12 +120,12 @@ export default function ProfileSettingsPage() {
       const data = await res.json();
       if (res.ok) {
         setUser(data);
-        toast.success("Profile updated successfully!");
+        toast.success(language === "id" ? "Profil berhasil diperbarui!" : "Profile updated successfully!");
       } else {
-        toast.error(data.error || "Failed to update profile");
+        toast.error(data.error || (language === "id" ? "Gagal memperbarui profil" : "Failed to update profile"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -133,7 +135,7 @@ export default function ProfileSettingsPage() {
   const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addrName || !addrPhone || !addrAddress || !addrCity || !addrProvince || !addrPostalCode) {
-      toast.error("All fields are required");
+      toast.error(language === "id" ? "Semua kolom wajib diisi" : "All fields are required");
       return;
     }
     setSaving(true);
@@ -158,15 +160,19 @@ export default function ProfileSettingsPage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success(editingAddressId ? "Address updated" : "Address added");
+        toast.success(
+          editingAddressId
+            ? (language === "id" ? "Alamat diperbarui" : "Address updated")
+            : (language === "id" ? "Alamat ditambahkan" : "Address added")
+        );
         setAddressFormOpen(false);
         resetAddressForm();
         fetchProfile();
       } else {
-        toast.error(data.error || "Failed to save address");
+        toast.error(data.error || (language === "id" ? "Gagal menyimpan alamat" : "Failed to save address"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -180,19 +186,20 @@ export default function ProfileSettingsPage() {
         body: JSON.stringify({ id }),
       });
       if (res.ok) {
-        toast.success("Primary address updated");
+        toast.success(language === "id" ? "Alamat utama diperbarui" : "Primary address updated");
         fetchProfile();
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to update primary address");
+        toast.error(data.error || (language === "id" ? "Gagal memperbarui alamat utama" : "Failed to update primary address"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     }
   };
 
   const handleDeleteAddress = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this address?")) return;
+    const confirmMsg = language === "id" ? "Apakah Anda yakin ingin menghapus alamat ini?" : "Are you sure you want to delete this address?";
+    if (!confirm(confirmMsg)) return;
     try {
       const res = await fetch("/api/user?action=address-delete", {
         method: "POST",
@@ -200,14 +207,14 @@ export default function ProfileSettingsPage() {
         body: JSON.stringify({ id }),
       });
       if (res.ok) {
-        toast.success("Address deleted");
+        toast.success(language === "id" ? "Alamat dihapus" : "Address deleted");
         fetchProfile();
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to delete address");
+        toast.error(data.error || (language === "id" ? "Gagal menghapus alamat" : "Failed to delete address"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     }
   };
 
@@ -238,7 +245,7 @@ export default function ProfileSettingsPage() {
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payNumber) {
-      toast.error("Account/Wallet number is required");
+      toast.error(language === "id" ? "Nomor rekening/dompet wajib diisi" : "Account/Wallet number is required");
       return;
     }
     setSaving(true);
@@ -256,16 +263,16 @@ export default function ProfileSettingsPage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success("Payment method added");
+        toast.success(language === "id" ? "Metode pembayaran ditambahkan" : "Payment method added");
         setPaymentFormOpen(false);
         setPayNumber("");
         setPayIsPrimary(false);
         fetchProfile();
       } else {
-        toast.error(data.error || "Failed to add payment method");
+        toast.error(data.error || (language === "id" ? "Gagal menambahkan metode pembayaran" : "Failed to add payment method"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -279,19 +286,20 @@ export default function ProfileSettingsPage() {
         body: JSON.stringify({ id }),
       });
       if (res.ok) {
-        toast.success("Primary payment method updated");
+        toast.success(language === "id" ? "Metode pembayaran utama diperbarui" : "Primary payment method updated");
         fetchProfile();
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to update primary payment");
+        toast.error(data.error || (language === "id" ? "Gagal memperbarui pembayaran utama" : "Failed to update primary payment"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     }
   };
 
   const handleDeletePayment = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this payment method?")) return;
+    const confirmMsg = language === "id" ? "Apakah Anda yakin ingin menghapus metode pembayaran ini?" : "Are you sure you want to delete this payment method?";
+    if (!confirm(confirmMsg)) return;
     try {
       const res = await fetch("/api/user?action=payment-delete", {
         method: "POST",
@@ -299,14 +307,14 @@ export default function ProfileSettingsPage() {
         body: JSON.stringify({ id }),
       });
       if (res.ok) {
-        toast.success("Payment method deleted");
+        toast.success(language === "id" ? "Metode pembayaran dihapus" : "Payment method deleted");
         fetchProfile();
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to delete payment method");
+        toast.error(data.error || (language === "id" ? "Gagal menghapus metode pembayaran" : "Failed to delete payment method"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     }
   };
 
@@ -315,7 +323,7 @@ export default function ProfileSettingsPage() {
     e.preventDefault();
     const parsedAmount = parseFloat(topUpAmount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      toast.error("Please enter a valid amount greater than 0");
+      toast.error(language === "id" ? "Silakan masukkan jumlah yang valid lebih besar dari 0" : "Please enter a valid amount greater than 0");
       return;
     }
     setToppingUp(true);
@@ -328,13 +336,13 @@ export default function ProfileSettingsPage() {
       const data = await res.json();
       if (res.ok) {
         setUser(data);
-        toast.success(`Successfully topped up Rp${parsedAmount.toLocaleString()}`);
+        toast.success(language === "id" ? `Berhasil mengisi ulang Rp${parsedAmount.toLocaleString()}` : `Successfully topped up Rp${parsedAmount.toLocaleString()}`);
         setTopUpAmount("");
       } else {
-        toast.error(data.error || "Failed to top up");
+        toast.error(data.error || (language === "id" ? "Gagal mengisi ulang" : "Failed to top up"));
       }
     } catch {
-      toast.error("Something went wrong during top up");
+      toast.error(language === "id" ? "Terjadi kesalahan saat mengisi ulang" : "Something went wrong during top up");
     } finally {
       setToppingUp(false);
     }
@@ -342,11 +350,11 @@ export default function ProfileSettingsPage() {
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords don't match!");
+      toast.error(language === "id" ? "Kata sandi tidak cocok!" : "Passwords don't match!");
       return;
     }
     if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters");
+      toast.error(language === "id" ? "Kata sandi harus minimal 8 karakter" : "Password must be at least 8 characters");
       return;
     }
     setSaving(true);
@@ -358,34 +366,37 @@ export default function ProfileSettingsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success("Password changed successfully!");
+        toast.success(language === "id" ? "Kata sandi berhasil diubah!" : "Password changed successfully!");
         setOldPassword(""); setNewPassword(""); setConfirmPassword("");
       } else {
-        toast.error(data.error || "Failed to change password");
+        toast.error(data.error || (language === "id" ? "Gagal mengubah kata sandi" : "Failed to change password"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("Are you absolutely sure? This action CANNOT be undone. All your data will be permanently deleted.")) {
+    const confirmMsg = language === "id"
+      ? "Apakah Anda benar-benar yakin? Tindakan ini TIDAK dapat dibatalkan. Semua data Anda akan dihapus secara permanen."
+      : "Are you absolutely sure? This action CANNOT be undone. All your data will be permanently deleted.";
+    if (!confirm(confirmMsg)) {
       return;
     }
     try {
       const res = await fetch("/api/user?action=delete-account", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
       if (res.ok) {
-        toast.success("Account deleted");
+        toast.success(language === "id" ? "Akun dihapus" : "Account deleted");
         resetAuth();
         router.push("/");
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to delete account");
+        toast.error(data.error || (language === "id" ? "Gagal menghapus akun" : "Failed to delete account"));
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(language === "id" ? "Terjadi kesalahan" : "Something went wrong");
     }
   };
 
@@ -407,8 +418,12 @@ export default function ProfileSettingsPage() {
           <ChevronLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-lg font-bold text-white">Account Settings</h1>
-          <p className="text-xs text-zinc-500">Manage your profile, addresses, payments, and security</p>
+          <h1 className="text-lg font-bold text-white">{t.profileSettings}</h1>
+          <p className="text-xs text-zinc-500">
+            {language === "id" 
+              ? "Kelola profil, alamat, pembayaran, dan keamanan Anda" 
+              : "Manage your profile, addresses, payments, and security"}
+          </p>
         </div>
       </header>
 
@@ -416,12 +431,12 @@ export default function ProfileSettingsPage() {
         {/* TAB NAV */}
         <div className="flex gap-1 border-b border-zinc-900 mb-8 overflow-x-auto whitespace-nowrap scrollbar-none">
           {[
-            { key: "profile" as const, label: "Profile", icon: User },
-            { key: "addresses" as const, label: "Addresses", icon: MapPin },
-            { key: "payments" as const, label: "Payments & Wallet", icon: CreditCard },
-            { key: "preferences" as const, label: "Preferences", icon: Globe },
-            { key: "security" as const, label: "Security", icon: Shield },
-            { key: "danger" as const, label: "Danger Zone", icon: AlertTriangle },
+            { key: "profile" as const, label: t.profile, icon: User },
+            { key: "addresses" as const, label: t.addresses, icon: MapPin },
+            { key: "payments" as const, label: language === "id" ? "Pembayaran & Dompet" : "Payments & Wallet", icon: CreditCard },
+            { key: "preferences" as const, label: t.preferences, icon: Globe },
+            { key: "security" as const, label: t.security, icon: Shield },
+            { key: "danger" as const, label: t.dangerZone, icon: AlertTriangle },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -452,7 +467,7 @@ export default function ProfileSettingsPage() {
               />
               <div className="flex-1 space-y-2 w-full">
                 <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                  <Camera size={14} /> Avatar URL
+                  <Camera size={14} /> {language === "id" ? "URL Avatar" : "Avatar URL"}
                 </label>
                 <input
                   type="url"
@@ -461,7 +476,11 @@ export default function ProfileSettingsPage() {
                   placeholder="https://example.com/photo.jpg"
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500/60 transition text-white placeholder:text-zinc-600"
                 />
-                <p className="text-[11px] text-zinc-600">Use a direct image URL (JPG, PNG, WebP). Square photos work best.</p>
+                <p className="text-[11px] text-zinc-600">
+                  {language === "id" 
+                    ? "Gunakan URL gambar langsung (JPG, PNG, WebP). Foto persegi berfungsi paling baik." 
+                    : "Use a direct image URL (JPG, PNG, WebP). Square photos work best."}
+                </p>
               </div>
             </div>
 
@@ -470,8 +489,8 @@ export default function ProfileSettingsPage() {
               {[
                 { label: "Username", icon: User, value: username, setter: setUsername, placeholder: "your_username" },
                 { label: "Email", icon: Mail, value: email, setter: setEmail, placeholder: "name@gmail.com" },
-                { label: "Phone", icon: Phone, value: phone, setter: setPhone, placeholder: "+62 812 3456 7890" },
-                { label: "Birth Date", icon: Calendar, value: birthDate, setter: setBirthDate, type: "date", placeholder: "" },
+                { label: language === "id" ? "Nomor Telepon" : "Phone", icon: Phone, value: phone, setter: setPhone, placeholder: "+62 812 3456 7890" },
+                { label: language === "id" ? "Tanggal Lahir" : "Birth Date", icon: Calendar, value: birthDate, setter: setBirthDate, type: "date", placeholder: "" },
               ].map(({ label, icon: Icon, value, setter, placeholder, type = "text" }) => (
                 <div key={label} className="space-y-2">
                   <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -489,17 +508,17 @@ export default function ProfileSettingsPage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Globe size={13} /> Gender
+                  <Globe size={13} /> {language === "id" ? "Jenis Kelamin" : "Gender"}
                 </label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500/60 transition text-white"
                 >
-                  <option value="">Prefer not to say</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
+                  <option value="">{language === "id" ? "Pilih tidak menyebutkan" : "Prefer not to say"}</option>
+                  <option value="male">{language === "id" ? "Laki-laki" : "Male"}</option>
+                  <option value="female">{language === "id" ? "Perempuan" : "Female"}</option>
+                  <option value="other">{language === "id" ? "Lainnya" : "Other"}</option>
                 </select>
               </div>
             </div>
@@ -510,7 +529,7 @@ export default function ProfileSettingsPage() {
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell the community about yourself..."
+                placeholder={language === "id" ? "Ceritakan tentang diri Anda kepada komunitas..." : "Tell the community about yourself..."}
                 rows={3}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-purple-500/60 transition text-white placeholder:text-zinc-600 resize-none"
               />
@@ -523,7 +542,9 @@ export default function ProfileSettingsPage() {
               className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-2xl transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <Save size={16} />
-              {saving ? "Saving..." : "Save Profile"}
+              {saving 
+                ? (language === "id" ? "Menyimpan..." : "Saving...") 
+                : (language === "id" ? "Simpan Profil" : "Save Profile")}
             </button>
           </div>
         )}
@@ -533,8 +554,8 @@ export default function ProfileSettingsPage() {
           <div className="space-y-6 animate-fadeIn">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="font-bold text-white text-lg">Saved Addresses</h3>
-                <p className="text-xs text-zinc-500">Manage up to 10 delivery addresses</p>
+                <h3 className="font-bold text-white text-lg">{language === "id" ? "Alamat Tersimpan" : "Saved Addresses"}</h3>
+                <p className="text-xs text-zinc-500">{language === "id" ? "Kelola hingga 10 alamat pengiriman" : "Manage up to 10 delivery addresses"}</p>
               </div>
               {addresses.length < 10 && !addressFormOpen && (
                 <button
@@ -542,7 +563,7 @@ export default function ProfileSettingsPage() {
                   onClick={() => { resetAddressForm(); setAddressFormOpen(true); }}
                   className="inline-flex items-center gap-1.5 py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl text-xs transition"
                 >
-                  <Plus size={14} /> Add New
+                  <Plus size={14} /> {language === "id" ? "Tambah Baru" : "Add New"}
                 </button>
               )}
             </div>
@@ -551,7 +572,11 @@ export default function ProfileSettingsPage() {
             {addressFormOpen && (
               <form onSubmit={handleSaveAddress} className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-                  <h4 className="font-bold text-white text-sm">{editingAddressId ? "Edit Address" : "Add New Address"}</h4>
+                  <h4 className="font-bold text-white text-sm">
+                    {editingAddressId 
+                      ? (language === "id" ? "Ubah Alamat" : "Edit Address") 
+                      : (language === "id" ? "Tambah Alamat Baru" : "Add New Address")}
+                  </h4>
                   <button type="button" onClick={() => setAddressFormOpen(false)} className="text-zinc-500 hover:text-white">
                     <X size={18} />
                   </button>
@@ -559,7 +584,7 @@ export default function ProfileSettingsPage() {
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-450 uppercase tracking-wider">Recipient Name</label>
+                    <label className="text-xs font-semibold text-zinc-450 uppercase tracking-wider">{language === "id" ? "Nama Penerima" : "Recipient Name"}</label>
                     <input
                       type="text"
                       value={addrName}
@@ -569,7 +594,7 @@ export default function ProfileSettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-455 uppercase tracking-wider">Phone Number</label>
+                    <label className="text-xs font-semibold text-zinc-455 uppercase tracking-wider">{language === "id" ? "Nomor Telepon" : "Phone Number"}</label>
                     <input
                       type="text"
                       value={addrPhone}
@@ -581,7 +606,7 @@ export default function ProfileSettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-zinc-456 uppercase tracking-wider">Street Address</label>
+                  <label className="text-xs font-semibold text-zinc-456 uppercase tracking-wider">{language === "id" ? "Alamat Jalan" : "Street Address"}</label>
                   <textarea
                     value={addrAddress}
                     onChange={(e) => setAddrAddress(e.target.value)}
@@ -593,7 +618,7 @@ export default function ProfileSettingsPage() {
 
                 <div className="grid sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-457 uppercase tracking-wider">City</label>
+                    <label className="text-xs font-semibold text-zinc-457 uppercase tracking-wider">{language === "id" ? "Kota" : "City"}</label>
                     <input
                       type="text"
                       value={addrCity}
@@ -603,7 +628,7 @@ export default function ProfileSettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-458 uppercase tracking-wider">Province</label>
+                    <label className="text-xs font-semibold text-zinc-458 uppercase tracking-wider">{language === "id" ? "Provinsi" : "Province"}</label>
                     <input
                       type="text"
                       value={addrProvince}
@@ -613,7 +638,7 @@ export default function ProfileSettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-459 uppercase tracking-wider">Postal Code</label>
+                    <label className="text-xs font-semibold text-zinc-459 uppercase tracking-wider">{language === "id" ? "Kode Pos" : "Postal Code"}</label>
                     <input
                       type="text"
                       value={addrPostalCode}
@@ -631,7 +656,7 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => setAddrIsPrimary(e.target.checked)}
                     className="accent-purple-600 rounded"
                   />
-                  <span className="text-xs text-zinc-400">Set as primary shipping address</span>
+                  <span className="text-xs text-zinc-400">{language === "id" ? "Atur sebagai alamat pengiriman utama" : "Set as primary shipping address"}</span>
                 </label>
 
                 <div className="flex gap-2 pt-2 justify-end">
@@ -640,14 +665,14 @@ export default function ProfileSettingsPage() {
                     onClick={() => setAddressFormOpen(false)}
                     className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded-xl transition"
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
                     className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition"
                   >
-                    {saving ? "Saving..." : "Save Address"}
+                    {saving ? (language === "id" ? "Menyimpan..." : "Saving...") : (language === "id" ? "Simpan Alamat" : "Save Address")}
                   </button>
                 </div>
               </form>
@@ -657,8 +682,12 @@ export default function ProfileSettingsPage() {
             {addresses.length === 0 ? (
               <div className="text-center py-12 bg-zinc-900/10 border border-zinc-850 rounded-2xl space-y-3">
                 <MapPin size={36} className="mx-auto text-zinc-700" />
-                <h4 className="font-semibold text-white">No Addresses Saved</h4>
-                <p className="text-xs text-zinc-500 mt-1">Please add a shipping address to enable smooth checkout.</p>
+                <h4 className="font-semibold text-white">{language === "id" ? "Tidak Ada Alamat Tersimpan" : "No Addresses Saved"}</h4>
+                <p className="text-xs text-zinc-500 mt-1">
+                  {language === "id" 
+                    ? "Silakan tambahkan alamat pengiriman untuk mempermudah checkout." 
+                    : "Please add a shipping address to enable smooth checkout."}
+                </p>
               </div>
             ) : (
               <div className="grid gap-4">
@@ -671,7 +700,7 @@ export default function ProfileSettingsPage() {
                   >
                     {addr.isPrimary && (
                       <div className="absolute top-4 right-4 flex items-center gap-1 text-[10px] text-purple-400 font-bold uppercase tracking-wider bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
-                        <Star size={11} className="fill-purple-400" /> Primary
+                        <Star size={11} className="fill-purple-400" /> {t.primary}
                       </div>
                     )}
                     
@@ -691,7 +720,7 @@ export default function ProfileSettingsPage() {
                           onClick={() => handleSetPrimaryAddress(addr.id)}
                           className="text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1 transition"
                         >
-                          <Star size={12} /> Set Primary
+                          <Star size={12} /> {language === "id" ? "Atur Utama" : "Set Primary"}
                         </button>
                       )}
                       <button
@@ -699,14 +728,14 @@ export default function ProfileSettingsPage() {
                         onClick={() => openEditAddress(addr)}
                         className="text-zinc-400 hover:text-white transition"
                       >
-                        Edit Details
+                        {language === "id" ? "Ubah Detail" : "Edit Details"}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteAddress(addr.id)}
                         className="text-zinc-500 hover:text-red-400 transition ml-auto flex items-center gap-1"
                       >
-                        <Trash2 size={12} /> Delete
+                        <Trash2 size={12} /> {t.delete}
                       </button>
                     </div>
                   </div>
@@ -723,12 +752,16 @@ export default function ProfileSettingsPage() {
             <div className="p-6 bg-gradient-to-br from-purple-900/40 to-blue-900/30 border border-purple-500/20 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-purple-350 uppercase tracking-wider flex items-center gap-1.5">
-                  <Wallet size={13} /> B.Art Wallet Balance
+                  <Wallet size={13} /> {language === "id" ? "Saldo Dompet B.Art" : "B.Art Wallet Balance"}
                 </span>
                 <h3 className="text-3xl font-bold text-white font-mono">
                   Rp{(user?.wallet || 0).toLocaleString()}
                 </h3>
-                <p className="text-[10px] text-purple-300/60">Top up instantly to make simulated purchases.</p>
+                <p className="text-[10px] text-purple-300/60">
+                  {language === "id" 
+                    ? "Isi ulang secara instan untuk melakukan simulasi pembelian." 
+                    : "Top up instantly to make simulated purchases."}
+                </p>
               </div>
 
               <form onSubmit={handleTopUp} className="flex gap-2 w-full sm:w-auto">
@@ -736,15 +769,15 @@ export default function ProfileSettingsPage() {
                   type="number"
                   value={topUpAmount}
                   onChange={(e) => setTopUpAmount(e.target.value)}
-                  placeholder="Rp Top Up Amount"
-                  className="bg-zinc-950 border border-purple-500/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 w-full sm:w-36 placeholder:text-zinc-700"
+                  placeholder={language === "id" ? "Jumlah Isi Ulang" : "Top Up Amount"}
+                  className="bg-zinc-955 border border-purple-500/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 w-full sm:w-36 placeholder:text-zinc-700"
                 />
                 <button
                   type="submit"
                   disabled={toppingUp}
                   className="bg-white hover:bg-zinc-150 text-zinc-950 font-bold px-5 py-2.5 rounded-xl text-xs transition shrink-0"
                 >
-                  {toppingUp ? "Processing..." : "Top Up"}
+                  {toppingUp ? (language === "id" ? "Memproses..." : "Processing...") : t.topUp}
                 </button>
               </form>
             </div>
@@ -753,8 +786,8 @@ export default function ProfileSettingsPage() {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="font-bold text-white text-lg">Saved Payment Methods</h3>
-                  <p className="text-xs text-zinc-500">Manage your active banks and e-wallets</p>
+                  <h3 className="font-bold text-white text-lg">{language === "id" ? "Metode Pembayaran Tersimpan" : "Saved Payment Methods"}</h3>
+                  <p className="text-xs text-zinc-500">{language === "id" ? "Kelola bank dan e-wallet aktif Anda" : "Manage your active banks and e-wallets"}</p>
                 </div>
                 {!paymentFormOpen && (
                   <button
@@ -762,7 +795,7 @@ export default function ProfileSettingsPage() {
                     onClick={() => setPaymentFormOpen(true)}
                     className="inline-flex items-center gap-1.5 py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl text-xs transition"
                   >
-                    <Plus size={14} /> Add Payment
+                    <Plus size={14} /> {language === "id" ? "Tambah Pembayaran" : "Add Payment"}
                   </button>
                 )}
               </div>
@@ -771,7 +804,7 @@ export default function ProfileSettingsPage() {
               {paymentFormOpen && (
                 <form onSubmit={handleAddPayment} className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl space-y-4">
                   <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-                    <h4 className="font-bold text-white text-sm">Add Payment Method</h4>
+                    <h4 className="font-bold text-white text-sm">{language === "id" ? "Tambah Metode Pembayaran" : "Add Payment Method"}</h4>
                     <button type="button" onClick={() => setPaymentFormOpen(false)} className="text-zinc-500 hover:text-white">
                       <X size={18} />
                     </button>
@@ -779,7 +812,7 @@ export default function ProfileSettingsPage() {
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-xs font-semibold text-zinc-450 uppercase tracking-wider">Bank / Provider</label>
+                      <label className="text-xs font-semibold text-zinc-450 uppercase tracking-wider">{language === "id" ? "Bank / Penyedia" : "Bank / Provider"}</label>
                       <select
                         value={payBank}
                         onChange={(e) => setPayBank(e.target.value)}
@@ -791,7 +824,7 @@ export default function ProfileSettingsPage() {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-semibold text-zinc-455 uppercase tracking-wider">Account / Wallet Number</label>
+                      <label className="text-xs font-semibold text-zinc-455 uppercase tracking-wider">{language === "id" ? "Nomor Rekening / Dompet" : "Account / Wallet Number"}</label>
                       <input
                         type="text"
                         value={payNumber}
@@ -809,7 +842,7 @@ export default function ProfileSettingsPage() {
                       onChange={(e) => setPayIsPrimary(e.target.checked)}
                       className="accent-purple-650 rounded"
                     />
-                    <span className="text-xs text-zinc-400">Set as primary payment method</span>
+                    <span className="text-xs text-zinc-400">{language === "id" ? "Atur sebagai metode pembayaran utama" : "Set as primary payment method"}</span>
                   </label>
 
                   <div className="flex gap-2 pt-2 justify-end">
@@ -818,14 +851,14 @@ export default function ProfileSettingsPage() {
                       onClick={() => setPaymentFormOpen(false)}
                       className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded-xl transition"
                     >
-                      Cancel
+                      {t.cancel}
                     </button>
                     <button
                       type="submit"
                       disabled={saving}
                       className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition"
                     >
-                      {saving ? "Saving..." : "Add Method"}
+                      {saving ? (language === "id" ? "Menyimpan..." : "Saving...") : (language === "id" ? "Tambah Metode" : "Add Method")}
                     </button>
                   </div>
                 </form>
@@ -835,8 +868,12 @@ export default function ProfileSettingsPage() {
               {payments.length === 0 ? (
                 <div className="text-center py-12 bg-zinc-900/10 border border-zinc-850 rounded-2xl space-y-3">
                   <CreditCard size={36} className="mx-auto text-zinc-700" />
-                  <h4 className="font-semibold text-white">No Payment Methods</h4>
-                  <p className="text-xs text-zinc-500 mt-1">Please add a payment method to streamline order simulation.</p>
+                  <h4 className="font-semibold text-white">{language === "id" ? "Tidak Ada Metode Pembayaran" : "No Payment Methods"}</h4>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {language === "id" 
+                      ? "Silakan tambahkan metode pembayaran untuk merampingkan simulasi pesanan." 
+                      : "Please add a payment method to streamline order simulation."}
+                  </p>
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -850,24 +887,26 @@ export default function ProfileSettingsPage() {
                       <div>
                         {pay.isPrimary && (
                           <span className="absolute top-4 right-4 text-[9px] text-purple-400 font-bold uppercase tracking-wider bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
-                            Primary
+                            {t.primary}
                           </span>
                         )}
                         <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase block mb-1">
-                          {pay.type === "E_WALLET" ? "E-Wallet" : "Bank Transfer"}
+                          {pay.type === "E_WALLET" 
+                            ? (language === "id" ? "Dompet Digital" : "E-Wallet") 
+                            : (language === "id" ? "Transfer Bank" : "Bank Transfer")}
                         </span>
                         <h4 className="font-bold text-white text-base">{pay.bank}</h4>
                         <p className="text-sm text-zinc-400 font-mono mt-2 tracking-wider">{pay.number}</p>
                       </div>
 
-                      <div className="flex gap-4 border-t border-zinc-850/30 pt-4 mt-6 text-xs">
+                      <div className="flex gap-4 border-t border-zinc-855/30 pt-4 mt-6 text-xs">
                         {!pay.isPrimary && (
                           <button
                             type="button"
                             onClick={() => handleSetPrimaryPayment(pay.id)}
                             className="text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1 transition"
                           >
-                            Set Primary
+                            {language === "id" ? "Atur Utama" : "Set Primary"}
                           </button>
                         )}
                         <button
@@ -875,7 +914,7 @@ export default function ProfileSettingsPage() {
                           onClick={() => handleDeletePayment(pay.id)}
                           className="text-zinc-500 hover:text-red-400 transition ml-auto flex items-center gap-1"
                         >
-                          <Trash2 size={12} /> Remove
+                          <Trash2 size={12} /> {language === "id" ? "Hapus" : "Remove"}
                         </button>
                       </div>
                     </div>
@@ -892,14 +931,18 @@ export default function ProfileSettingsPage() {
             {/* Theme Preference */}
             <div className="p-6 bg-zinc-900/40 rounded-2xl border border-zinc-800 space-y-4">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Globe size={18} className="text-purple-400" /> Theme Preference
+                <Globe size={18} className="text-purple-400" /> {language === "id" ? "Preferensi Tema" : "Theme Preference"}
               </h3>
-              <p className="text-xs text-zinc-500">Choose how B.Art appears on your device. Persisted locally.</p>
+              <p className="text-xs text-zinc-500">
+                {language === "id" 
+                  ? "Pilih bagaimana B.Art muncul di perangkat Anda. Disimpan secara lokal." 
+                  : "Choose how B.Art appears on your device. Persisted locally."}
+              </p>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { key: "light" as const, label: "Light Theme", desc: "Clean and bright", logo: "☀️" },
-                  { key: "dark" as const, label: "Dark Theme", desc: "Cozy and premium", logo: "🌙" },
-                  { key: "system" as const, label: "System Theme", desc: "Matches device", logo: "🖥️" },
+                  { key: "light" as const, label: t.lightTheme, desc: language === "id" ? "Bersih dan terang" : "Clean and bright", logo: "☀️" },
+                  { key: "dark" as const, label: t.darkTheme, desc: language === "id" ? "Nyaman dan premium" : "Cozy and premium", logo: "🌙" },
+                  { key: "system" as const, label: t.systemTheme, desc: language === "id" ? "Sesuai perangkat" : "Matches device", logo: "🖥️" },
                 ].map(({ key, label, desc, logo }) => (
                   <button
                     key={key}
@@ -922,20 +965,24 @@ export default function ProfileSettingsPage() {
             {/* Language Preference */}
             <div className="p-6 bg-zinc-900/40 rounded-2xl border border-zinc-800 space-y-4">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Globe size={18} className="text-purple-400" /> Language / Bahasa
+                <Globe size={18} className="text-purple-400" /> {language === "id" ? "Bahasa / Language" : "Language / Bahasa"}
               </h3>
-              <p className="text-xs text-zinc-500">Select your preferred language. Persisted locally.</p>
+              <p className="text-xs text-zinc-500">
+                {language === "id" 
+                  ? "Pilih bahasa pilihan Anda. Disimpan secara lokal." 
+                  : "Select your preferred language. Persisted locally."}
+              </p>
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { key: "en" as const, label: "English", desc: "Global communication", flag: "🇺🇸" },
-                  { key: "id" as const, label: "Bahasa Indonesia", desc: "Komunikasi lokal", flag: "🇮🇩" },
+                  { key: "en" as const, label: "English", desc: language === "id" ? "Komunikasi global" : "Global communication", flag: "🇺🇸" },
+                  { key: "id" as const, label: "Bahasa Indonesia", desc: language === "id" ? "Komunikasi lokal" : "Local communication", flag: "🇮🇩" },
                 ].map(({ key, label, desc, flag }) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => {
                       setLanguage(key);
-                      toast.success(`Language set to ${label}`);
+                      toast.success(language === "id" ? `Bahasa diatur ke ${label}` : `Language set to ${label}`);
                     }}
                     className={`flex flex-col items-center justify-center p-5 rounded-2xl border text-center transition ${
                       language === key
@@ -958,12 +1005,12 @@ export default function ProfileSettingsPage() {
           <div className="space-y-6 animate-fadeIn">
             <div className="p-6 bg-zinc-900/40 rounded-2xl border border-zinc-800 space-y-5">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Shield size={18} className="text-purple-400" /> Change Password
+                <Shield size={18} className="text-purple-400" /> {language === "id" ? "Ubah Kata Sandi" : "Change Password"}
               </h3>
               {[
-                { label: "Current Password", value: oldPassword, setter: setOldPassword },
-                { label: "New Password", value: newPassword, setter: setNewPassword },
-                { label: "Confirm New Password", value: confirmPassword, setter: setConfirmPassword },
+                { label: language === "id" ? "Kata Sandi Saat Ini" : "Current Password", value: oldPassword, setter: setOldPassword },
+                { label: language === "id" ? "Kata Sandi Baru" : "New Password", value: newPassword, setter: setNewPassword },
+                { label: language === "id" ? "Konfirmasi Kata Sandi Baru" : "Confirm New Password", value: confirmPassword, setter: setConfirmPassword },
               ].map(({ label, value, setter }) => (
                 <div key={label} className="space-y-2">
                   <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{label}</label>
@@ -991,7 +1038,9 @@ export default function ProfileSettingsPage() {
                 disabled={saving}
                 className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                {saving ? "Updating..." : "Update Password"}
+                {saving 
+                  ? (language === "id" ? "Memperbarui..." : "Updating...") 
+                  : (language === "id" ? "Perbarui Kata Sandi" : "Update Password")}
               </button>
             </div>
           </div>
@@ -999,27 +1048,27 @@ export default function ProfileSettingsPage() {
 
         {/* DANGER ZONE TAB */}
         {activeTab === "danger" && (
-          <div className="p-6 bg-red-950/10 rounded-2xl border border-red-900/40 space-y-4 animate-fadeIn">
+          <div className="p-6 bg-red-955/10 rounded-2xl border border-red-900/40 space-y-4 animate-fadeIn">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-950/40 rounded-xl">
+              <div className="p-2 bg-red-955/40 rounded-xl">
                 <AlertTriangle size={20} className="text-red-400" />
               </div>
               <div>
-                <h3 className="font-bold text-white">Delete Account</h3>
-                <p className="text-sm text-zinc-500">Permanently delete your account and all associated data</p>
+                <h3 className="font-bold text-white">{language === "id" ? "Hapus Akun" : "Delete Account"}</h3>
+                <p className="text-sm text-zinc-500">{language === "id" ? "Hapus akun Anda dan semua data terkait secara permanen" : "Permanently delete your account and all associated data"}</p>
               </div>
             </div>
-            <ul className="list-disc list-inside text-xs text-zinc-500 space-y-1 pl-2">
-              <li>Your profile, artworks, and purchase history will be deleted</li>
-              <li>Your wallet balance will be lost</li>
-              <li>This action cannot be undone</li>
+            <ul className="list-disc list-inside text-xs text-zinc-550 space-y-1 pl-2">
+              <li>{language === "id" ? "Profil, karya seni, dan riwayat pembelian Anda akan dihapus" : "Your profile, artworks, and purchase history will be deleted"}</li>
+              <li>{language === "id" ? "Saldo dompet Anda akan hilang" : "Your wallet balance will be lost"}</li>
+              <li>{language === "id" ? "Tindakan ini tidak dapat dibatalkan" : "This action cannot be undone"}</li>
             </ul>
             <button
               type="button"
               onClick={handleDeleteAccount}
               className="w-full py-3.5 bg-red-900/30 hover:bg-red-900/50 border border-red-800/50 text-red-400 hover:text-red-300 font-bold rounded-2xl transition flex items-center justify-center gap-2"
             >
-              <Trash2 size={16} /> Delete My Account Permanently
+              <Trash2 size={16} /> {language === "id" ? "Hapus Akun Saya Secara Permanen" : "Delete My Account Permanently"}
             </button>
           </div>
         )}

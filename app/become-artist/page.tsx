@@ -35,18 +35,36 @@ export default function BecomeArtistPage() {
   const [bankName, setBankName] = useState("Mandiri");
   const [accountNumber, setAccountNumber] = useState("");
   const [verified, setVerified] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<"idle" | "pending" | "approved" | "rejected">("idle");
 
-  const simulateUpload = () => {
-    const mockFiles = [
-      { name: "anime_samurai_sketches.png", size: "4.8 MB", type: "png", preview: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=150&q=80" },
-      { name: "landscape_photography_2026.pdf", size: "12.4 MB", type: "pdf" },
-      { name: "sticker_packs_vector.zip", size: "8.1 MB", type: "zip" },
-      { name: "game_ui_assets.jpg", size: "6.2 MB", type: "jpg", preview: "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=150&q=80" },
-    ];
-    
-    const randomFile = mockFiles[Math.floor(Math.random() * mockFiles.length)];
-    setPortfolioFile(randomFile);
-    toast.success(`Successfully uploaded: ${randomFile.name}`, { icon: "📎" });
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedExtensions = ["pdf", "png", "jpg", "jpeg", "zip"];
+    const extension = file.name.split(".").pop()?.toLowerCase() || "";
+
+    if (!allowedExtensions.includes(extension)) {
+      toast.error("Invalid file type. Please upload a PDF, PNG, JPG, JPEG, or ZIP file.");
+      return;
+    }
+
+    // Calculate human-readable size
+    const sizeInMB = file.size / (1024 * 1024);
+    const sizeStr = sizeInMB < 0.1 ? `${(file.size / 1024).toFixed(1)} KB` : `${sizeInMB.toFixed(1)} MB`;
+
+    const fileData: any = {
+      name: file.name,
+      size: sizeStr,
+      type: extension,
+    };
+
+    if (["png", "jpg", "jpeg"].includes(extension)) {
+      fileData.preview = URL.createObjectURL(file);
+    }
+
+    setPortfolioFile(fileData);
+    toast.success(`Successfully uploaded: ${file.name}`, { icon: "📎" });
   };
 
   const handleOpenVerification = () => {
@@ -62,6 +80,7 @@ export default function BecomeArtistPage() {
       toast.error("Please agree to the Artist Terms first");
       return;
     }
+    setVerificationStatus("idle");
     setModalOpen(true);
   };
 
@@ -72,12 +91,19 @@ export default function BecomeArtistPage() {
       return;
     }
 
+    setVerificationStatus("pending");
+    setLoading(true);
+
+    // Simulate verification delay of 2 seconds
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     if (ktpNumber !== "123456") {
+      setVerificationStatus("rejected");
+      setLoading(false);
       toast.error("Invalid KTP Number. Verification failed.");
       return;
     }
 
-    setLoading(true);
     try {
       const res = await fetch("/api/user?action=become-artist", {
         method: "POST",
@@ -91,12 +117,15 @@ export default function BecomeArtistPage() {
       const data = await res.json();
       if (res.ok) {
         setUser(data);
+        setVerificationStatus("approved");
         setVerified(true);
         toast.success("🎉 Verification successful! Welcome to the creator program.");
       } else {
+        setVerificationStatus("rejected");
         toast.error(data.error || "Failed to process verification");
       }
     } catch {
+      setVerificationStatus("rejected");
       toast.error("Something went wrong during verification");
     } finally {
       setLoading(false);
@@ -249,13 +278,22 @@ export default function BecomeArtistPage() {
               <label className="text-xs font-bold text-zinc-450 uppercase tracking-wider block">Portfolio Upload (PDF, PNG, JPG, ZIP)</label>
               
               {!portfolioFile ? (
-                <div 
-                  onClick={simulateUpload}
-                  className="border-2 border-dashed border-zinc-800 hover:border-purple-500/50 rounded-2xl p-6 text-center cursor-pointer transition bg-zinc-950/20 hover:bg-purple-950/5 group"
-                >
-                  <Palette size={32} className="mx-auto text-zinc-600 mb-2 group-hover:text-purple-400 transition animate-pulse" />
-                  <p className="text-xs font-semibold text-zinc-300">Click to upload your portfolio</p>
-                  <p className="text-[10px] text-zinc-500 mt-1">Supports PDF, PNG, JPG, ZIP up to 50MB</p>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="portfolio-upload"
+                    accept=".pdf,.png,.jpg,.jpeg,.zip"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <div 
+                    onClick={() => document.getElementById("portfolio-upload")?.click()}
+                    className="border-2 border-dashed border-zinc-800 hover:border-purple-500/50 rounded-2xl p-6 text-center cursor-pointer transition bg-zinc-950/20 hover:bg-purple-950/5 group"
+                  >
+                    <Palette size={32} className="mx-auto text-zinc-600 mb-2 group-hover:text-purple-400 transition animate-pulse" />
+                    <p className="text-xs font-semibold text-zinc-300">Click to upload your portfolio</p>
+                    <p className="text-[10px] text-zinc-500 mt-1">Supports PDF, PNG, JPG, ZIP up to 50MB</p>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-zinc-950/60 border border-zinc-800 rounded-2xl p-4 flex items-center justify-between gap-4 animate-fadeIn">
@@ -329,7 +367,7 @@ export default function BecomeArtistPage() {
         <div className="fixed inset-0 z-50 bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] w-full max-w-md overflow-hidden relative shadow-2xl">
             {/* Close Button */}
-            {!verified && (
+            {(verificationStatus === "idle" || verificationStatus === "rejected") && (
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
@@ -339,7 +377,7 @@ export default function BecomeArtistPage() {
               </button>
             )}
 
-            {!verified ? (
+            {verificationStatus === "idle" && (
               /* FORM STATE */
               <form onSubmit={handleVerifySubmit} className="p-8 space-y-6">
                 <div className="text-center space-y-2">
@@ -364,9 +402,9 @@ export default function BecomeArtistPage() {
                       value={ktpNumber}
                       onChange={(e) => setKtpNumber(e.target.value)}
                       placeholder="Enter KTP Number"
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500 transition text-white"
+                      className="w-full bg-zinc-955 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500 transition text-white"
                     />
-                    <p className="text-[10px] text-zinc-650 font-mono">Use simulation KTP: 123456</p>
+                    <p className="text-[10px] text-zinc-500 font-mono">Use simulation KTP: 123456</p>
                   </div>
 
                   {/* Bank Account Details */}
@@ -378,9 +416,9 @@ export default function BecomeArtistPage() {
                       <select
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500 transition text-white"
+                        className="w-full bg-zinc-955 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500 transition text-white"
                       >
-                        {["Mandiri", "BCA", "BNI", "BRI", "OVO", "Dana"].map((bank) => (
+                        {["Mandiri", "BCA", "BNI", "BRI"].map((bank) => (
                           <option key={bank} value={bank}>{bank}</option>
                         ))}
                       </select>
@@ -416,7 +454,25 @@ export default function BecomeArtistPage() {
                   )}
                 </button>
               </form>
-            ) : (
+            )}
+
+            {verificationStatus === "pending" && (
+              /* PENDING / LOADING STATE */
+              <div className="p-8 text-center space-y-6 py-16 animate-fadeIn">
+                <div className="relative w-16 h-16 mx-auto">
+                  <div className="absolute inset-0 rounded-full border-4 border-purple-500/25 animate-ping"></div>
+                  <Loader2 size={64} className="text-purple-500 animate-spin mx-auto" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-white">Verification Pending</h3>
+                  <p className="text-xs text-zinc-450 max-w-xs mx-auto leading-relaxed">
+                    Connecting to the national registry database... authenticating your KTP credentials and portfolio.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {verificationStatus === "approved" && (
               /* SUCCESS STATE */
               <div className="p-8 text-center space-y-6 animate-scaleIn">
                 <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto text-green-400">
@@ -424,8 +480,8 @@ export default function BecomeArtistPage() {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold text-white">Verification Success!</h3>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/10 border border-purple-550/20 rounded-full text-purple-400 text-xs font-bold uppercase tracking-widest mt-1">
-                    <Star size={11} className="fill-purple-400" /> Copper Artist Badge
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-400 text-xs font-bold uppercase tracking-widest mt-1">
+                    <Star size={11} className="fill-purple-400" /> Beginner Artist Badge 🥉
                   </div>
                   <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto pt-3">
                     Your credentials have been authenticated. Your account role has been updated from <strong className="text-white">USER</strong> to <strong className="text-white">ARTIST</strong>.
@@ -441,6 +497,33 @@ export default function BecomeArtistPage() {
                   className="w-full py-3.5 bg-white hover:bg-zinc-150 text-zinc-950 font-bold rounded-xl transition shadow-lg text-sm"
                 >
                   Go to Artist Dashboard
+                </button>
+              </div>
+            )}
+
+            {verificationStatus === "rejected" && (
+              /* REJECTED STATE */
+              <div className="p-8 text-center space-y-6 animate-scaleIn">
+                <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-400">
+                  <X size={32} className="animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-bold text-white">Verification Rejected</h3>
+                  <p className="text-xs text-zinc-450 leading-relaxed max-w-xs mx-auto pt-3">
+                    Identity verification failed. The KTP number you entered does not match our simulated records.
+                  </p>
+                  <p className="text-[11px] text-purple-450 font-medium">Please make sure to use the simulation KTP: 123456</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVerificationStatus("idle");
+                    setKtpNumber("");
+                  }}
+                  className="w-full py-3.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition text-sm"
+                >
+                  Try Again
                 </button>
               </div>
             )}

@@ -14,8 +14,9 @@ import {
   Sparkles,
   Gavel
 } from "lucide-react";
-import { useAuthStore } from "@/src/lib/stores";
+import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
 import { formatCurrency } from "@/src/lib/format";
+import { translations } from "@/src/lib/translations";
 import { LoginRequiredModal } from "@/src/components/login-required-modal";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -23,11 +24,25 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+const getArtistBadgeLabel = (badge: string | null | undefined, lang: string = "en") => {
+  const b = badge?.toUpperCase() || "COPPER";
+  const isIndo = lang === "id";
+  if (b === "PLATINUM" || b === "DIAMOND") {
+    return isIndo ? "Seniman Profesional 🥇" : "Professional Artist 🥇";
+  }
+  if (b === "SILVER" || b === "GOLD") {
+    return isIndo ? "Seniman Menengah 🥈" : "Intermediate Artist 🥈";
+  }
+  return isIndo ? "Seniman Pemula 🥉" : "Beginner Artist 🥉";
+};
+
 export default function ArtistProfilePage({ params }: PageProps) {
   const resolvedParams = use(params);
   const id = resolvedParams.id;
   const router = useRouter();
   const { user, isGuest } = useAuthStore();
+  const { language } = usePreferencesStore();
+  const t = translations[language] || translations.en;
 
   // State
   const [artist, setArtist] = useState<any>(null);
@@ -52,7 +67,6 @@ export default function ArtistProfilePage({ params }: PageProps) {
         setArts(artistWorks);
 
         // Fetch artist info (we can get from the first art item, or fetch users)
-        // Let's call /api/user if the ID matches user, otherwise get from arts artist details or custom API
         if (artistWorks.length > 0) {
           setArtist(artistWorks[0].artist);
         } else {
@@ -76,8 +90,6 @@ export default function ArtistProfilePage({ params }: PageProps) {
       }
 
       // Get follower count (mock logic: check follows table, or seed number)
-      // Since it's a mock, we can set random count or query follows count:
-      // Let's set 42 followers or query
       setFollowerCount(28);
 
     } catch (error) {
@@ -98,7 +110,7 @@ export default function ArtistProfilePage({ params }: PageProps) {
     }
 
     if (id === user.id) {
-      toast.error("You cannot follow yourself");
+      toast.error(language === "id" ? "Anda tidak dapat mengikuti diri sendiri" : "You cannot follow yourself");
       return;
     }
 
@@ -114,17 +126,17 @@ export default function ArtistProfilePage({ params }: PageProps) {
         setIsFollowing(data.followed);
         if (data.followed) {
           setFollowerCount(followerCount + 1);
-          toast.success(`Following ${artist?.username}`);
+          toast.success(language === "id" ? `Mengikuti ${artist?.username}` : `Following ${artist?.username}`);
         } else {
           setFollowerCount(Math.max(0, followerCount - 1));
-          toast.success(`Unfollowed ${artist?.username}`);
+          toast.success(language === "id" ? `Batal mengikuti ${artist?.username}` : `Unfollowed ${artist?.username}`);
         }
       } else {
         const err = await res.json();
-        toast.error(err.error || "Failed to follow");
+        toast.error(err.error || (language === "id" ? "Gagal mengikuti" : "Failed to follow"));
       }
     } catch {
-      toast.error("Failed to toggle follow");
+      toast.error(language === "id" ? "Gagal mengubah status ikuti" : "Failed to toggle follow");
     }
   };
 
@@ -133,7 +145,9 @@ export default function ArtistProfilePage({ params }: PageProps) {
       <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-purple-500 border-t-transparent"></div>
-          <p className="text-zinc-400 text-sm tracking-widest">LOADING ARTIST PROFILE...</p>
+          <p className="text-zinc-400 text-sm tracking-widest">
+            {language === "id" ? "MEMUAT PROFIL SENIMAN..." : "LOADING ARTIST PROFILE..."}
+          </p>
         </div>
       </div>
     );
@@ -154,7 +168,7 @@ export default function ArtistProfilePage({ params }: PageProps) {
       {/* NAVBAR */}
       <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
         <Link href="/home" className="flex items-center gap-2 text-zinc-400 hover:text-white transition font-semibold text-sm">
-          <ChevronLeft size={18} /> Back to Gallery
+          <ChevronLeft size={18} /> {t.backToGallery}
         </Link>
         <span className="text-2xl font-bold font-serif bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent" style={{ fontFamily: "var(--font-playfair), serif" }}>
           B.Art
@@ -181,7 +195,7 @@ export default function ArtistProfilePage({ params }: PageProps) {
                 <h1 className="text-3xl font-serif text-white font-bold" style={{ fontFamily: "var(--font-playfair), serif" }}>{finalArtist.username}</h1>
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
                   <span className="text-[10px] font-bold tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-full uppercase">
-                    {finalArtist.badge || "COPPER"} Artist
+                    {getArtistBadgeLabel(finalArtist.badge, language)}
                   </span>
                   <span className="text-xs text-zinc-500 flex items-center gap-1"><MapPin size={12} /> Jakarta, Indonesia</span>
                 </div>
@@ -190,9 +204,9 @@ export default function ArtistProfilePage({ params }: PageProps) {
               
               {/* Stats */}
               <div className="flex items-center justify-center sm:justify-start gap-6 text-sm text-zinc-300 font-mono">
-                <div><strong>{followerCount}</strong> <span className="text-zinc-500">followers</span></div>
-                <div><strong>19</strong> <span className="text-zinc-500">following</span></div>
-                <div><strong>{arts.length}</strong> <span className="text-zinc-500">artworks</span></div>
+                <div><strong>{followerCount}</strong> <span className="text-zinc-500">{language === "id" ? "pengikut" : "followers"}</span></div>
+                <div><strong>19</strong> <span className="text-zinc-500">{language === "id" ? "mengikuti" : "following"}</span></div>
+                <div><strong>{arts.length}</strong> <span className="text-zinc-500">{language === "id" ? "karya seni" : "artworks"}</span></div>
               </div>
             </div>
           </div>
@@ -211,22 +225,22 @@ export default function ArtistProfilePage({ params }: PageProps) {
               >
                 {isFollowing ? (
                   <>
-                    <UserMinus size={16} /> Unfollow
+                    <UserMinus size={16} /> {t.unfollow}
                   </>
                 ) : (
                   <>
-                    <UserPlus size={16} /> Follow Artist
+                    <UserPlus size={16} /> {language === "id" ? "Ikuti Seniman" : "Follow Artist"}
                   </>
                 )}
               </button>
             )}
             <button 
               type="button" 
-              onClick={() => router.push("/coming-soon")}
+              onClick={() => router.push("/chat")}
               className="py-3.5 px-5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-full transition flex items-center justify-center"
               title="Chat"
             >
-              Message
+              {language === "id" ? "Pesan" : "Message"}
             </button>
           </div>
         </div>
@@ -235,22 +249,28 @@ export default function ArtistProfilePage({ params }: PageProps) {
         <section className="space-y-6">
           <div className="flex justify-between items-center border-b border-zinc-900 pb-4">
             <h3 className="text-xl font-bold font-serif text-white flex items-center gap-2" style={{ fontFamily: "var(--font-playfair), serif" }}>
-              <Sparkles size={18} className="text-purple-400" /> Digital Artwork Portfolio
+              <Sparkles size={18} className="text-purple-400" /> {t.digitalArtworkPortfolio}
             </h3>
-            <span className="text-xs text-zinc-500">{arts.length} pieces</span>
+            <span className="text-xs text-zinc-500">{arts.length} {language === "id" ? "karya" : "pieces"}</span>
           </div>
 
           {arts.length === 0 ? (
             <div className="text-center py-20 bg-zinc-900/10 border border-dashed border-zinc-800 rounded-3xl">
               <Gavel size={40} className="mx-auto mb-3 text-zinc-700 animate-pulse" />
-              <h4 className="font-bold text-white text-base">No Artworks Found</h4>
-              <p className="text-xs text-zinc-500 mt-1">This artist hasn't uploaded any creations yet.</p>
+              <h4 className="font-bold text-white text-base">
+                {language === "id" ? "Karya Seni Tidak Ditemukan" : "No Artworks Found"}
+              </h4>
+              <p className="text-xs text-zinc-500 mt-1">
+                {language === "id" 
+                  ? "Seniman ini belum mengunggah karya seni apa pun." 
+                  : "This artist hasn't uploaded any creations yet."}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {arts.map((art) => (
                 <div key={art.id} className="group overflow-hidden rounded-[2rem] border border-zinc-850 bg-zinc-900/40 hover:bg-zinc-900 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-950/10">
-                  <Link href={`/art/${art.id}`} className="block aspect-[4/3] w-full overflow-hidden bg-zinc-950">
+                  <Link href={`/art/${art.id}`} className="block aspect-[4/3] w-full overflow-hidden bg-zinc-955">
                     <img src={art.image} alt={art.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                   </Link>
                   <div className="p-5 space-y-3">
@@ -261,7 +281,7 @@ export default function ArtistProfilePage({ params }: PageProps) {
                     <div className="flex justify-between items-center text-xs text-zinc-500">
                       <span>{art.style}</span>
                       <Link href={`/art/${art.id}`} className="text-purple-400 hover:text-purple-300 font-semibold transition">
-                        View Details →
+                        {language === "id" ? "Lihat Detail →" : "View Details →"}
                       </Link>
                     </div>
                   </div>

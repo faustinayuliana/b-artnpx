@@ -14,12 +14,15 @@ import {
   ShoppingBag,
   Info
 } from "lucide-react";
-import { useAuthStore } from "@/src/lib/stores";
+import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
+import { translations } from "@/src/lib/translations";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function NotificationsPage() {
   const router = useRouter();
   const { user, isGuest } = useAuthStore();
+  const { language } = usePreferencesStore();
+  const t = translations[language] || translations.en;
 
   // State
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -42,7 +45,7 @@ export default function NotificationsPage() {
         setNotifications(data);
       }
     } catch {
-      toast.error("Failed to load notifications");
+      toast.error(language === "id" ? "Gagal memuat notifikasi" : "Failed to load notifications");
     } finally {
       setLoading(false);
     }
@@ -56,10 +59,10 @@ export default function NotificationsPage() {
 
       if (res.ok) {
         setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
-        toast.success("All notifications marked as read");
+        toast.success(language === "id" ? "Semua notifikasi ditandai sebagai dibaca" : "All notifications marked as read");
       }
     } catch {
-      toast.error("Failed to update notifications");
+      toast.error(language === "id" ? "Gagal memperbarui notifikasi" : "Failed to update notifications");
     }
   };
 
@@ -75,10 +78,10 @@ export default function NotificationsPage() {
         setNotifications(
           notifications.map((n) => (n.id === notifId ? { ...n, isRead: !n.isRead } : n))
         );
-        toast.success("Notification updated");
+        toast.success(language === "id" ? "Notifikasi diperbarui" : "Notification updated");
       }
     } catch {
-      toast.error("Failed to update notification");
+      toast.error(language === "id" ? "Gagal memperbarui notifikasi" : "Failed to update notification");
     }
   };
 
@@ -90,10 +93,10 @@ export default function NotificationsPage() {
 
       if (res.ok) {
         setNotifications(notifications.filter((n) => n.id !== notifId));
-        toast.success("Notification deleted");
+        toast.success(language === "id" ? "Notifikasi dihapus" : "Notification deleted");
       }
     } catch {
-      toast.error("Failed to delete notification");
+      toast.error(language === "id" ? "Gagal menghapus notifikasi" : "Failed to delete notification");
     }
   };
 
@@ -105,10 +108,10 @@ export default function NotificationsPage() {
 
       if (res.ok) {
         setNotifications([]);
-        toast.success("All notifications deleted");
+        toast.success(language === "id" ? "Semua notifikasi dihapus" : "All notifications deleted");
       }
     } catch {
-      toast.error("Failed to clear notifications");
+      toast.error(language === "id" ? "Gagal membersihkan notifikasi" : "Failed to clear notifications");
     }
   };
 
@@ -132,7 +135,7 @@ export default function NotificationsPage() {
       {/* NAVBAR */}
       <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
         <Link href="/home" className="flex items-center gap-2 text-zinc-400 hover:text-white transition font-semibold text-sm">
-          <ChevronLeft size={18} /> Back to Gallery
+          <ChevronLeft size={18} /> {t.backToGallery}
         </Link>
         <span className="text-2xl font-bold font-serif bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent" style={{ fontFamily: "var(--font-playfair), serif" }}>
           B.Art
@@ -145,9 +148,9 @@ export default function NotificationsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold font-serif text-white flex items-center gap-2" style={{ fontFamily: "var(--font-playfair), serif" }}>
-              <Bell size={24} className="text-purple-400" /> Notifications
+              <Bell size={24} className="text-purple-400" /> {t.notifications}
             </h1>
-            <p className="text-zinc-400 text-sm">Updates on deals, discounts, recommendations, and your art trades.</p>
+            <p className="text-zinc-400 text-sm">{t.notificationsDesc}</p>
           </div>
 
           {notifications.length > 0 && (
@@ -157,14 +160,14 @@ export default function NotificationsPage() {
                 onClick={handleReadAll}
                 className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 font-semibold bg-purple-500/10 px-4 py-2.5 rounded-full transition"
               >
-                <CheckCheck size={14} /> Read All
+                <CheckCheck size={14} /> {t.readAll}
               </button>
               <button
                 type="button"
                 onClick={handleClearAll}
                 className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 font-semibold bg-red-500/10 px-4 py-2.5 rounded-full transition"
               >
-                <Trash2 size={14} /> Clear All
+                <Trash2 size={14} /> {t.clearAll}
               </button>
             </div>
           )}
@@ -180,8 +183,8 @@ export default function NotificationsPage() {
         ) : notifications.length === 0 ? (
           <div className="text-center py-20 bg-zinc-900/10 border border-zinc-850 rounded-3xl space-y-3">
             <Bell size={48} className="mx-auto text-zinc-700 animate-pulse" />
-            <h4 className="font-bold text-white text-lg">No Notifications Yet</h4>
-            <p className="text-xs text-zinc-500 mt-1">We'll alert you when there are news, purchases, or discount deals.</p>
+            <h4 className="font-bold text-white text-lg">{t.noNotifications}</h4>
+            <p className="text-xs text-zinc-500 mt-1">{t.noNotificationsDesc}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -220,11 +223,11 @@ export default function NotificationsPage() {
                     >
                       {notif.isRead ? (
                         <>
-                          <Mail size={12} /> Mark Unread
+                          <Mail size={12} /> {t.markUnread}
                         </>
                       ) : (
                         <>
-                          <MailOpen size={12} /> Mark Read
+                          <MailOpen size={12} /> {t.markRead}
                         </>
                       )}
                     </button>
@@ -233,7 +236,7 @@ export default function NotificationsPage() {
                       onClick={() => handleDeleteNotif(notif.id)}
                       className="text-zinc-500 hover:text-red-400 transition flex items-center gap-1"
                     >
-                      <Trash2 size={12} /> Delete
+                      <Trash2 size={12} /> {t.delete}
                     </button>
                   </div>
                 </div>

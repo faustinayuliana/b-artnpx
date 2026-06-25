@@ -4,13 +4,28 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Heart, User, Sparkles, Image as ImageIcon } from "lucide-react";
-import { useAuthStore } from "@/src/lib/stores";
+import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
 import { formatCurrency } from "@/src/lib/format";
+import { translations } from "@/src/lib/translations";
 import toast, { Toaster } from "react-hot-toast";
+
+const getArtistBadgeLabel = (badge: string | null | undefined, lang: string = "en") => {
+  const b = badge?.toUpperCase() || "COPPER";
+  const isIndo = lang === "id";
+  if (b === "PLATINUM" || b === "DIAMOND") {
+    return isIndo ? "Seniman Profesional 🥇" : "Professional Artist 🥇";
+  }
+  if (b === "SILVER" || b === "GOLD") {
+    return isIndo ? "Seniman Menengah 🥈" : "Intermediate Artist 🥈";
+  }
+  return isIndo ? "Seniman Pemula 🥉" : "Beginner Artist 🥉";
+};
 
 export default function FavoritesPage() {
   const router = useRouter();
   const { user, isGuest } = useAuthStore();
+  const { language } = usePreferencesStore();
+  const t = translations[language] || translations.en;
 
   // State
   const [activeTab, setActiveTab] = useState<"art" | "artist">("art");
@@ -39,7 +54,7 @@ export default function FavoritesPage() {
         }
       }
     } catch {
-      toast.error("Failed to load favorites");
+      toast.error(language === "id" ? "Gagal memuat favorit" : "Failed to load favorites");
     } finally {
       setLoading(false);
     }
@@ -55,10 +70,10 @@ export default function FavoritesPage() {
 
       if (res.ok) {
         setLikedArts(likedArts.filter((a) => a.id !== artId));
-        toast.success("Removed from favorites");
+        toast.success(language === "id" ? "Dihapus dari favorit" : "Removed from favorites");
       }
     } catch {
-      toast.error("Failed to remove favorite");
+      toast.error(language === "id" ? "Gagal menghapus favorit" : "Failed to remove favorite");
     }
   };
 
@@ -72,10 +87,10 @@ export default function FavoritesPage() {
 
       if (res.ok) {
         setFollowedArtists(followedArtists.filter((a) => a.id !== artistId));
-        toast.success("Unfollowed artist");
+        toast.success(language === "id" ? "Batal mengikuti seniman" : "Unfollowed artist");
       }
     } catch {
-      toast.error("Failed to unfollow");
+      toast.error(language === "id" ? "Gagal batal mengikuti" : "Failed to unfollow");
     }
   };
 
@@ -88,7 +103,7 @@ export default function FavoritesPage() {
       {/* NAVBAR */}
       <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
         <Link href="/home" className="flex items-center gap-2 text-zinc-400 hover:text-white transition font-semibold text-sm">
-          <ChevronLeft size={18} /> Back to Gallery
+          <ChevronLeft size={18} /> {t.backToGallery}
         </Link>
         <span className="text-2xl font-bold font-serif bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent" style={{ fontFamily: "var(--font-playfair), serif" }}>
           B.Art
@@ -99,8 +114,8 @@ export default function FavoritesPage() {
       {/* CONTENT */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8 space-y-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold font-serif text-white" style={{ fontFamily: "var(--font-playfair), serif" }}>My Favorites</h1>
-          <p className="text-zinc-400 text-sm">Manage your favorited artworks and followed creators in one place.</p>
+          <h1 className="text-3xl font-bold font-serif text-white" style={{ fontFamily: "var(--font-playfair), serif" }}>{t.myFavorites}</h1>
+          <p className="text-zinc-400 text-sm">{t.favoritesDesc}</p>
         </div>
 
         {/* Tabs Toggle */}
@@ -110,14 +125,14 @@ export default function FavoritesPage() {
             onClick={() => setActiveTab("art")}
             className={`flex-1 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition ${activeTab === "art" ? "bg-white text-zinc-950 shadow-md" : "text-zinc-400 hover:text-white"}`}
           >
-            Liked Artworks
+            {t.likedArtworks}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("artist")}
             className={`flex-1 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition ${activeTab === "artist" ? "bg-white text-zinc-950 shadow-md" : "text-zinc-400 hover:text-white"}`}
           >
-            Followed Artists
+            {t.followedArtists}
           </button>
         </div>
 
@@ -134,11 +149,11 @@ export default function FavoritesPage() {
             <div className="text-center py-20 bg-zinc-900/10 border border-zinc-850 rounded-3xl space-y-4">
               <ImageIcon size={48} className="mx-auto text-zinc-700 animate-pulse" />
               <div>
-                <h4 className="font-bold text-white text-lg">No Favorite Artworks</h4>
-                <p className="text-xs text-zinc-500 mt-1">Start exploring the gallery to like digital creations.</p>
+                <h4 className="font-bold text-white text-lg">{t.noFavoriteArts}</h4>
+                <p className="text-xs text-zinc-500 mt-1">{t.noFavoriteArtsDesc}</p>
               </div>
               <Link href="/home" className="inline-flex items-center gap-2 py-2.5 px-6 rounded-full bg-purple-600 hover:bg-purple-500 font-semibold text-xs transition">
-                Discover Artworks <Sparkles size={12} />
+                {t.discoverArtworks} <Sparkles size={12} />
               </Link>
             </div>
           ) : (
@@ -152,7 +167,7 @@ export default function FavoritesPage() {
                     <div>
                       <h4 className="font-semibold text-sm sm:text-base text-white truncate line-clamp-1">{art.title}</h4>
                       <Link href={`/artist/${art.artistId}`} className="text-xs text-zinc-400 hover:text-white transition mt-1 block">
-                        by {art.artist?.username}
+                        {language === "id" ? "oleh" : "by"} {art.artist?.username}
                       </Link>
                     </div>
                     <div className="flex items-center justify-between mt-2">
@@ -162,7 +177,7 @@ export default function FavoritesPage() {
                         onClick={() => handleRemoveFavorite(art.id)}
                         className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition"
                       >
-                        <Heart size={14} className="fill-red-500 text-red-500" /> Unlike
+                        <Heart size={14} className="fill-red-500 text-red-500" /> {t.unlike}
                       </button>
                     </div>
                   </div>
@@ -176,11 +191,11 @@ export default function FavoritesPage() {
             <div className="text-center py-20 bg-zinc-900/10 border border-zinc-850 rounded-3xl space-y-4">
               <User size={48} className="mx-auto text-zinc-700 animate-pulse" />
               <div>
-                <h4 className="font-bold text-white text-lg">No Followed Artists</h4>
-                <p className="text-xs text-zinc-500 mt-1">Discover artists you may like and follow their work.</p>
+                <h4 className="font-bold text-white text-lg">{t.noFollowedArtists}</h4>
+                <p className="text-xs text-zinc-500 mt-1">{t.noFollowedArtistsDesc}</p>
               </div>
               <Link href="/home" className="inline-flex items-center gap-2 py-2.5 px-6 rounded-full bg-purple-600 hover:bg-purple-500 font-semibold text-xs transition">
-                Discover Creators <User size={12} />
+                {t.discoverCreators} <User size={12} />
               </Link>
             </div>
           ) : (
@@ -200,19 +215,19 @@ export default function FavoritesPage() {
                         {artist.username}
                       </Link>
                       <span className="text-[9px] uppercase tracking-widest text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full inline-block mt-1">
-                        {artist.badge || "COPPER"} Artist
+                        {getArtistBadgeLabel(artist.badge, language)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2.5">
                       <Link href={`/artist/${artist.id}`} className="text-xs text-zinc-400 hover:text-white transition">
-                        View Portfolio
+                        {t.viewPortfolio}
                       </Link>
                       <button
                         type="button"
                         onClick={() => handleUnfollowArtist(artist.id)}
                         className="text-xs text-zinc-400 hover:text-red-400 font-semibold transition"
                       >
-                        Unfollow
+                        {t.unfollow}
                       </button>
                     </div>
                   </div>

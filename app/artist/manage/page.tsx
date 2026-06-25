@@ -64,6 +64,15 @@ export default function ArtistManagePage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  const [analytics, setAnalytics] = useState<{
+    artsCount: number;
+    salesCount: number;
+    revenue: number;
+    followersCount: number;
+    badge: string;
+    wallet: number;
+  } | null>(null);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -75,6 +84,12 @@ export default function ArtistManagePage() {
         if (userData.role !== "ARTIST") {
           router.push("/become-artist");
           return;
+        }
+
+        const analyticsRes = await fetch("/api/artist/analytics");
+        if (analyticsRes.ok) {
+          const analyticsData = await analyticsRes.json();
+          setAnalytics(analyticsData);
         }
 
         await fetchArts(userData.id);
@@ -180,33 +195,30 @@ export default function ArtistManagePage() {
     );
   }
 
-  const portfolioValue = arts.reduce((sum, a) => sum + (a.price || 0), 0);
-  
-  // Dynamic career sales and analytics calculations
-  const careerSales = portfolioValue * 1.65; // realistic career sales simulation based on upload portfolio
-  const ordersCount = arts.length > 0 ? Math.round(arts.length * 1.2) : 0;
-  const followersCount = arts.length > 0 ? Math.round(arts.length * 14.5) : 0;
+  const careerSales = analytics?.revenue || 0;
+  const ordersCount = analytics?.salesCount || 0;
+  const followersCount = analytics?.followersCount || 0;
 
   // Badge tier calculation
-  let artistBadgeName = "Beginner (Copper)";
-  let nextBadgeName = "Intermediate (Silver)";
-  let nextBadgeSalesTarget = 500000;
+  let artistBadgeName = "Beginner Artist 🥉";
+  let nextBadgeName = "Intermediate Artist 🥈";
+  let nextBadgeSalesTarget = 10;
   let progressPercent = 0;
 
-  if (careerSales < 500000) {
-    artistBadgeName = "Beginner (Copper)";
-    nextBadgeName = "Intermediate (Silver)";
-    nextBadgeSalesTarget = 500000;
-    progressPercent = (careerSales / 500000) * 100;
-  } else if (careerSales >= 500000 && careerSales < 2000000) {
-    artistBadgeName = "Intermediate (Silver)";
-    nextBadgeName = "Professional (Gold/Platinum)";
-    nextBadgeSalesTarget = 2000000;
-    progressPercent = ((careerSales - 500000) / 1500000) * 100;
+  if (ordersCount < 10) {
+    artistBadgeName = "Beginner Artist 🥉";
+    nextBadgeName = "Intermediate Artist 🥈";
+    nextBadgeSalesTarget = 10;
+    progressPercent = (ordersCount / 10) * 100;
+  } else if (ordersCount >= 10 && ordersCount < 50) {
+    artistBadgeName = "Intermediate Artist 🥈";
+    nextBadgeName = "Professional Artist 🥇";
+    nextBadgeSalesTarget = 50;
+    progressPercent = ((ordersCount - 10) / 40) * 100;
   } else {
-    artistBadgeName = "Professional (Platinum)";
-    nextBadgeName = "Professional (Platinum)";
-    nextBadgeSalesTarget = 2000000;
+    artistBadgeName = "Professional Artist 🥇";
+    nextBadgeName = "Professional Artist 🥇";
+    nextBadgeSalesTarget = 50;
     progressPercent = 100;
   }
 
@@ -283,8 +295,8 @@ export default function ArtistManagePage() {
             </div>
             <div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
               <span>{artistBadgeName}</span>
-              {careerSales < 2000000 ? (
-                <span>Next Badge Target: {formatCurrency(nextBadgeSalesTarget)}</span>
+              {ordersCount < 50 ? (
+                <span>Next Badge Target: {nextBadgeSalesTarget} Sales</span>
               ) : (
                 <span className="text-yellow-400">✨ Professional Creator Rank Achieved</span>
               )}
