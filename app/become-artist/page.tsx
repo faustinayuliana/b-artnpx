@@ -13,6 +13,11 @@ import {
   Shield,
   TrendingUp,
   Users,
+  X,
+  CreditCard,
+  FileText,
+  BadgeAlert,
+  Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/src/lib/stores";
 import toast, { Toaster } from "react-hot-toast";
@@ -23,7 +28,14 @@ export default function BecomeArtistPage() {
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
-  const handleApply = async () => {
+  // Verification Modal States
+  const [modalOpen, setModalOpen] = useState(false);
+  const [ktpNumber, setKtpNumber] = useState("");
+  const [bankName, setBankName] = useState("Mandiri");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [verified, setVerified] = useState(false);
+
+  const handleOpenVerification = () => {
     if (!user) {
       router.push("/login");
       return;
@@ -32,23 +44,42 @@ export default function BecomeArtistPage() {
       toast.error("Please agree to the Artist Terms first");
       return;
     }
+    setModalOpen(true);
+  };
+
+  const handleVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ktpNumber || !accountNumber) {
+      toast.error("Please fill in all verification fields");
+      return;
+    }
+
+    if (ktpNumber !== "123456") {
+      toast.error("Invalid KTP Number. Verification failed.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/user?action=become-artist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          ktpNumber,
+          bankName,
+          accountNumber,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         setUser(data);
-        toast.success("🎉 Welcome to B.Art as an Artist!");
-        setTimeout(() => router.push("/artist/manage"), 1500);
+        setVerified(true);
+        toast.success("🎉 Verification successful! Welcome to the creator program.");
       } else {
-        toast.error(data.error || "Failed to apply");
+        toast.error(data.error || "Failed to process verification");
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error("Something went wrong during verification");
     } finally {
       setLoading(false);
     }
@@ -88,7 +119,7 @@ export default function BecomeArtistPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans relative overflow-x-hidden">
       <Toaster position="top-right" />
 
       {/* HEADER */}
@@ -105,7 +136,6 @@ export default function BecomeArtistPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-8 py-16 space-y-16">
-
         {/* HERO */}
         <div className="text-center space-y-6 relative">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -149,19 +179,21 @@ export default function BecomeArtistPage() {
         {/* HOW IT WORKS */}
         <div className="space-y-6">
           <h2 className="text-2xl font-bold text-center text-white">How It Works</h2>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
             {[
-              { step: "1", label: "Apply", desc: "Click the button below to activate your artist account instantly" },
+              { step: "1", label: "Apply & Verify", desc: "Submit your legal details to verify your identity instantly" },
               { step: "2", label: "Upload Art", desc: "Go to your artist dashboard and add your first artwork" },
               { step: "3", label: "Get Paid", desc: "Sales are automatically credited to your B.Art wallet" },
             ].map(({ step, label, desc }, idx) => (
-              <div key={step} className="flex-1 flex flex-col items-center text-center gap-3">
+              <div key={step} className="flex-1 flex flex-col items-center text-center gap-3 relative">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center font-bold text-lg text-white shadow-lg">
                   {step}
                 </div>
-                <h4 className="font-bold text-white">{label}</h4>
-                <p className="text-sm text-zinc-500 leading-relaxed">{desc}</p>
-                {idx < 2 && <ArrowRight size={20} className="text-zinc-700 rotate-90 sm:rotate-0" />}
+                <h4 className="font-bold text-white mt-1">{label}</h4>
+                <p className="text-xs sm:text-sm text-zinc-500 leading-relaxed max-w-[220px]">{desc}</p>
+                {idx < 2 && (
+                  <ArrowRight size={18} className="text-zinc-800 hidden sm:block absolute -right-4 top-4 translate-x-1/2" />
+                )}
               </div>
             ))}
           </div>
@@ -169,14 +201,14 @@ export default function BecomeArtistPage() {
 
         {/* APPLY CTA */}
         {user?.role === "ARTIST" ? (
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-4 animate-fadeIn">
             <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-950/30 border border-green-800/40 text-green-400 rounded-2xl text-sm font-semibold">
               <CheckCircle size={18} /> You are already an Artist!
             </div>
             <div>
               <Link
                 href="/artist/manage"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-zinc-100 text-zinc-950 font-bold rounded-2xl transition text-base"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-zinc-100 text-zinc-955 font-bold rounded-2xl transition text-base shadow-xl hover:shadow-purple-500/10"
               >
                 Go to Artist Dashboard <ArrowRight size={18} />
               </Link>
@@ -190,7 +222,7 @@ export default function BecomeArtistPage() {
               </div>
               <div>
                 <h3 className="font-bold text-white text-lg">Ready to start?</h3>
-                <p className="text-sm text-zinc-500">Your artist account will be activated immediately</p>
+                <p className="text-sm text-zinc-500">Submit verification details to unlock your store</p>
               </div>
             </div>
 
@@ -203,25 +235,149 @@ export default function BecomeArtistPage() {
               >
                 {agreed && <CheckCircle size={13} className="text-white" />}
               </div>
-              <span className="text-sm text-zinc-400 leading-relaxed">
+              <span className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
                 I agree to the B.Art{" "}
                 <span className="text-purple-400 cursor-pointer hover:underline">Artist Terms & Conditions</span>,
-                including the platform fee (10% per sale) and content ownership policies.
+                including the platform fee (10% per sale) and identity verification requirements.
               </span>
             </label>
 
             <button
               type="button"
-              onClick={handleApply}
-              disabled={loading || !agreed}
-              className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-2xl transition flex items-center justify-center gap-2 disabled:opacity-50 text-base"
+              onClick={handleOpenVerification}
+              disabled={!agreed}
+              className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-2xl transition flex items-center justify-center gap-2 disabled:opacity-50 text-base shadow-lg shadow-purple-900/25"
             >
               <Sparkles size={18} />
-              {loading ? "Activating..." : "Activate Artist Account"}
+              Verify & Activate Account
             </button>
           </div>
         )}
       </main>
+
+      {/* VERIFICATION MODAL */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] w-full max-w-md overflow-hidden relative shadow-2xl">
+            {/* Close Button */}
+            {!verified && (
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="absolute top-5 right-5 text-zinc-500 hover:text-white transition p-1"
+              >
+                <X size={18} />
+              </button>
+            )}
+
+            {!verified ? (
+              /* FORM STATE */
+              <form onSubmit={handleVerifySubmit} className="p-8 space-y-6">
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-purple-600/10 flex items-center justify-center mx-auto text-purple-400">
+                    <Shield size={22} />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Identity Verification</h3>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    Verify your credentials to register as a seller on B.Art.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* KTP Number */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <FileText size={13} /> KTP Number (NIK)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={ktpNumber}
+                      onChange={(e) => setKtpNumber(e.target.value)}
+                      placeholder="Enter KTP Number"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500 transition text-white"
+                    />
+                    <p className="text-[10px] text-zinc-650 font-mono">Use simulation KTP: 123456</p>
+                  </div>
+
+                  {/* Bank Account Details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <CreditCard size={13} /> Bank
+                      </label>
+                      <select
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500 transition text-white"
+                      >
+                        {["Mandiri", "BCA", "BNI", "BRI", "OVO", "Dana"].map((bank) => (
+                          <option key={bank} value={bank}>{bank}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                        Account Number
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
+                        placeholder="1200012345"
+                        className="w-full bg-zinc-955 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500 transition text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Verifying...
+                    </>
+                  ) : (
+                    "Submit Verification"
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* SUCCESS STATE */
+              <div className="p-8 text-center space-y-6 animate-scaleIn">
+                <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto text-green-400">
+                  <CheckCircle size={32} className="animate-bounce" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-bold text-white">Verification Success!</h3>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/10 border border-purple-550/20 rounded-full text-purple-400 text-xs font-bold uppercase tracking-widest mt-1">
+                    <Star size={11} className="fill-purple-400" /> Copper Artist Badge
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto pt-3">
+                    Your credentials have been authenticated. Your account role has been updated from <strong className="text-white">USER</strong> to <strong className="text-white">ARTIST</strong>.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalOpen(false);
+                    router.push("/artist/manage");
+                  }}
+                  className="w-full py-3.5 bg-white hover:bg-zinc-150 text-zinc-950 font-bold rounded-xl transition shadow-lg text-sm"
+                >
+                  Go to Artist Dashboard
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
