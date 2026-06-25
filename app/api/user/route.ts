@@ -5,7 +5,17 @@ import { getCurrentUser, clearAuthCookie } from "@/src/lib/auth";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    response.cookies.set({
+      name: "b-art-token",
+      value: "",
+      path: "/",
+      expires: new Date(0),
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+    });
+    return response;
   }
 
   try {

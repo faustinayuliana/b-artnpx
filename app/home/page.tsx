@@ -115,26 +115,53 @@ function HomePageContent() {
     }
   }, [searchParams, setGuest]);
 
-  // Verify session on mount
+  // Verify and load session on mount
   useEffect(() => {
     const verifySession = async () => {
-      if (user) {
+      try {
+        const res = await fetch("/api/user");
+        if (res.ok) {
+          const userData = await res.json();
+          setUser(userData);
+        } else if (res.status === 401) {
+          const wasLoggedIn = !!user;
+          resetAuth();
+          setGuest(true);
+          if (wasLoggedIn) {
+            localStorage.clear();
+            sessionStorage.clear();
+            router.push("/login");
+            toast.error("Session expired. Please login again.");
+          }
+        }
+      } catch {
+        if (!user) {
+          setGuest(true);
+        }
+      }
+    };
+
+    if (!user && !isGuest) {
+      verifySession();
+    } else if (user) {
+      const checkActiveSession = async () => {
         try {
           const res = await fetch("/api/user");
           if (!res.ok && res.status === 401) {
             resetAuth();
+            setGuest(true);
             localStorage.clear();
             sessionStorage.clear();
             router.push("/login");
             toast.error("Session expired. Please login again.");
           }
         } catch {
-          // Ignore network errors
+          // Ignore
         }
-      }
-    };
-    verifySession();
-  }, [user, resetAuth, router]);
+      };
+      checkActiveSession();
+    }
+  }, [user, isGuest, setUser, setGuest, resetAuth, router]);
 
   // Load Initial Data
   useEffect(() => {
