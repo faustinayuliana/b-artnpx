@@ -204,32 +204,13 @@ export default function HomePage() {
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (isGuest || !user) {
       setShowLoginModal(true);
       return;
     }
-
-    toast.loading("Processing order...", { id: "checkout" });
-    try {
-      const res = await fetch("/api/checkout", { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success("Checkout Successful! Wallet updated.", { id: "checkout" });
-        cartStore.clearCart();
-        setCartOpen(false);
-        // Refresh wallet
-        const userRes = await fetch("/api/user");
-        if (userRes.ok) {
-          const freshUser = await userRes.json();
-          setUser(freshUser);
-        }
-      } else {
-        toast.error(data.error || "Checkout failed", { id: "checkout" });
-      }
-    } catch {
-      toast.error("Something went wrong during checkout", { id: "checkout" });
-    }
+    setCartOpen(false);
+    router.push("/checkout");
   };
 
   const handleLogout = async () => {

@@ -120,23 +120,10 @@ export default function ArtDetailPage({ params }: PageProps) {
       return;
     }
 
-    // Add to cart first, then checkout
+    // Add to cart first, then redirect to checkout
     const success = await cartStore.addItem(art.id, 1);
     if (success) {
-      toast.loading("Redirecting to checkout...", { id: "buy-now" });
-      try {
-        const res = await fetch("/api/checkout", { method: "POST" });
-        const data = await res.json();
-        if (res.ok) {
-          toast.success("Purchase Successful! Wallet balance updated.", { id: "buy-now" });
-          cartStore.clearCart();
-          router.push("/profile");
-        } else {
-          toast.error(data.error || "Purchase failed", { id: "buy-now" });
-        }
-      } catch {
-        toast.error("Something went wrong during checkout", { id: "buy-now" });
-      }
+      router.push("/checkout");
     } else {
       toast.error("Failed to add to cart");
     }
