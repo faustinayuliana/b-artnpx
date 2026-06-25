@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ARTIST
+  ADMIN
+}
+
+enum ArtistBadge {
+  COPPER
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  password String
+  username String
+  avatar String?
+  bio String?
+  gender String?
+  phone String?
+  birthDate DateTime?
+  wallet Float @default(0)
+  role Role @default(USER)
+  badge ArtistBadge?
+  createdAt DateTime @default(now())
+
+  arts Art[]
+  cartItems CartItem[]
+  favorites Favorite[]
+  payments Payment[]
+  addresses Address[]
+  notifications Notification[]
+  followers Follow[] @relation("following")
+  following Follow[] @relation("followers")
+  conversationsAsUser1 Conversation[] @relation("user1")
+  conversationsAsUser2 Conversation[] @relation("user2")
+  sentMessages Message[] @relation("sender")
+  receivedMessages Message[] @relation("receiver")
+  bids Bid[]
+  orders Order[]
+}
+
+model Art {
+  id String @id @default(cuid())
+  title String
+  description String
+  image String
+  price Float
+  stock Int @default(1)
+  style String
+  theme String
+  color String
+  category String @default("Poster")
+  isCommission Boolean @default(false)
+  discount Int @default(0)
+  artistId String
+  artist User @relation(fields: [artistId], references: [id])
+  createdAt DateTime @default(now())
+  cartItems CartItem[]
+  favorites Favorite[]
+  auctions Auction[]
+  orderItems OrderItem[]
+}
+
+model CartItem {
+  id String @id @default(cuid())
+  qty Int @default(1)
+  userId String
+  artId String
+  user User @relation(fields: [userId], references: [id])
+  art Art @relation(fields: [artId], references: [id])
+}
+
+model Favorite {
+  id String @id @default(cuid())
+  userId String
+  artId String
+  user User @relation(fields: [userId], references: [id])
+  art Art @relation(fields: [artId], references: [id])
+}
+
+model Payment {
+  id String @id @default(cuid())
+  type String
+  bank String
+  number String
+  amount Float @default(0)
+  status String @default("PENDING")
+  isPrimary Boolean @default(false)
+  userId String
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Address {
+  id String @id @default(cuid())
+  name String
+  phone String
+  address String
+  city String
+  province String
+  postalCode String
+  isPrimary Boolean @default(false)
+  userId String
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id String @id @default(cuid())
+  title String
+  message String
+  isRead Boolean @default(false)
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Follow {
+  id String @id @default(cuid())
+
+  followerId String
+
+  followingId String
+
+  follower User @relation("followers", fields: [followerId], references: [id])
+
+  following User @relation("following", fields: [followingId], references: [id])
+}
+
+model Conversation {
+  id String @id @default(cuid())
+
+  user1Id String
+
+  user2Id String
+
+  user1 User @relation("user1", fields: [user1Id], references: [id])
+
+  user2 User @relation("user2", fields: [user2Id], references: [id])
+
+  messages Message[]
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  content String
+
+  image String?
+
+  isRead Boolean @default(false)
+
+  conversationId String
+
+  senderId String
+
+  receiverId String
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  sender User @relation("sender", fields: [senderId], references: [id])
+
+  receiver User @relation("receiver", fields: [receiverId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Auction {
+  id String @id @default(cuid())
+
+  artId String
+
+  startTime DateTime
+
+  endTime DateTime
+
+  currentBid Float @default(0)
+
+  winnerId String?
+
+  status AuctionStatus @default(UPCOMING)
+
+  art Art @relation(fields: [artId], references: [id])
+
+  bids Bid[]
+}
+
+model Bid {
+  id String @id @default(cuid())
+
+  amount Float
+
+  auctionId String
+
+  userId String
+
+  createdAt DateTime @default(now())
+
+  auction Auction @relation(fields: [auctionId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Order {
+  id String @id @default(cuid())
+
+  status OrderStatus @default(PENDING)
+
+  subtotal Float
+
+  adminFee Float
+
+  serviceFee Float
+
+  tax Float
+
+  total Float
+
+  userId String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  qty Int
+
+  price Float
+
+  orderId String
+
+  artId String
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  art Art @relation(fields: [artId], references: [id])
+}
+
+enum AuctionStatus {
+  UPCOMING
+  ACTIVE
+  FINISHED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
