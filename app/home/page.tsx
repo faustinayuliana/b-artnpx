@@ -22,9 +22,22 @@ import {
   X,
   HelpCircle
 } from "lucide-react";
-import { useAuthStore } from "@/src/lib/stores";
+import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
 import { useCartStore } from "@/src/lib/cartStore";
 import { formatCurrency } from "@/src/lib/format";
+import { translations } from "@/src/lib/translations";
+
+const getArtistBadgeLabel = (badge: string | null | undefined, lang: string = "en") => {
+  const b = badge?.toUpperCase() || "COPPER";
+  const isIndo = lang === "id";
+  if (b === "PLATINUM" || b === "DIAMOND") {
+    return isIndo ? "Seniman Profesional 🥇" : "Professional Artist 🥇";
+  }
+  if (b === "SILVER" || b === "GOLD") {
+    return isIndo ? "Seniman Menengah 🥈" : "Intermediate Artist 🥈";
+  }
+  return isIndo ? "Seniman Pemula 🥉" : "Beginner Artist 🥉";
+};
 import { LoginRequiredModal } from "@/src/components/login-required-modal";
 import { Button } from "@/src/components/button";
 import toast, { Toaster } from "react-hot-toast";
@@ -46,6 +59,8 @@ function HomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isGuest, setUser, setGuest, reset: resetAuth } = useAuthStore();
+  const { language } = usePreferencesStore();
+  const t = translations[language] || translations.en;
   const cartStore = useCartStore();
 
   // Filter States
@@ -99,6 +114,27 @@ function HomePageContent() {
       console.error("Failed to load search info:", e);
     }
   }, [searchParams, setGuest]);
+
+  // Verify session on mount
+  useEffect(() => {
+    const verifySession = async () => {
+      if (user) {
+        try {
+          const res = await fetch("/api/user");
+          if (!res.ok && res.status === 401) {
+            resetAuth();
+            localStorage.clear();
+            sessionStorage.clear();
+            router.push("/login");
+            toast.error("Session expired. Please login again.");
+          }
+        } catch {
+          // Ignore network errors
+        }
+      }
+    };
+    verifySession();
+  }, [user, resetAuth, router]);
 
   // Load Initial Data
   useEffect(() => {
@@ -255,6 +291,8 @@ function HomePageContent() {
     try {
       await fetch("/api/auth?action=logout", { method: "POST" });
       resetAuth();
+      localStorage.clear();
+      sessionStorage.clear();
       setShowLogoutConfirm(false);
       router.push("/");
       toast.success("Logged out successfully");
@@ -272,9 +310,11 @@ function HomePageContent() {
 
       {/* Logout Confirmation Modal */}
       <Modal open={showLogoutConfirm} title="Logout" onClose={() => setShowLogoutConfirm(false)}>
-        <div className="space-y-4 p-2 text-zinc-800">
+        <div className="space-y-4 p-2 text-zinc-855">
           <p className="text-sm text-zinc-600">
-            Are you sure you want to log out of B.Art? You will need to sign in again to access your cart, favorites, and profile.
+            {language === "id" 
+              ? "Apakah Anda yakin ingin keluar?"
+              : "Are you sure you want to logout?"}
           </p>
           <div className="flex gap-3 pt-2">
             <button
@@ -282,7 +322,7 @@ function HomePageContent() {
               className="flex-grow py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-full transition text-sm"
               onClick={() => setShowLogoutConfirm(false)}
             >
-              Cancel
+              {language === "id" ? "Batal" : "Cancel"}
             </button>
             <button
               type="button"
@@ -308,7 +348,7 @@ function HomePageContent() {
             className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold rounded-full transition"
             onClick={() => {
               setShowAuctionModal(false);
-              router.push("/coming-soon");
+              router.push("/auction");
             }}
           >
             Go to Auction Page
@@ -338,7 +378,7 @@ function HomePageContent() {
         >
           <input
             type="text"
-            placeholder="Search arts, artists, style..."
+            placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
@@ -426,7 +466,7 @@ function HomePageContent() {
           <Link 
             href="/help" 
             className="p-2 hover:bg-zinc-900 rounded-xl transition text-zinc-400 hover:text-zinc-200"
-            title="Help & FAQ"
+            title={t.help}
           >
             <HelpCircle size={20} />
           </Link>
@@ -462,7 +502,7 @@ function HomePageContent() {
           <button 
             type="button" 
             className="p-2 hover:bg-zinc-900 rounded-xl transition text-zinc-400 hover:text-zinc-200"
-            onClick={() => router.push("/coming-soon")}
+            onClick={() => router.push("/chat")}
           >
             <MessageSquare size={20} />
           </button>
@@ -506,7 +546,7 @@ function HomePageContent() {
                 <button type="button" onClick={() => setMobileMenuOpen(false)} className="text-zinc-400 hover:text-white"><X size={20} /></button>
               </div>
               <nav className="flex flex-col gap-4 text-sm font-medium">
-                <Link href="/home" className="flex items-center gap-3 text-white py-2 border-b border-zinc-800"><Sparkles size={16} /> Dashboard</Link>
+                <Link href="/home" className="flex items-center gap-3 text-white py-2 border-b border-zinc-800"><Sparkles size={16} /> {t.dashboard}</Link>
                 <button 
                   type="button" 
                   className="flex items-center gap-3 text-zinc-300 hover:text-white py-2 text-left"
@@ -516,7 +556,7 @@ function HomePageContent() {
                     else router.push("/favorites");
                   }}
                 >
-                  <Heart size={16} /> Favorites
+                  <Heart size={16} /> {t.favorites}
                 </button>
                 <button 
                   type="button" 
@@ -527,17 +567,17 @@ function HomePageContent() {
                     else router.push("/notifications");
                   }}
                 >
-                  <MessageSquare size={16} /> Notifications
+                  <MessageSquare size={16} /> {t.notifications}
                 </button>
                 {!isGuest && (
                   <>
-                    <Link href="/profile" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><UserIcon size={16} /> My Profile</Link>
-                    <Link href="/profile/settings" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><Settings size={16} /> Settings</Link>
-                    <Link href="/help" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><HelpCircle size={16} /> Help & FAQ</Link>
+                    <Link href="/profile" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><UserIcon size={16} /> {language === "id" ? "Profil Saya" : "My Profile"}</Link>
+                    <Link href="/profile/settings" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><Settings size={16} /> {t.settings}</Link>
+                    <Link href="/help" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><HelpCircle size={16} /> {t.help}</Link>
                     {user?.role === "ARTIST" ? (
-                      <Link href="/artist/manage" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><Gavel size={16} /> Manage Arts</Link>
+                      <Link href="/artist/manage" className="flex items-center gap-3 text-zinc-300 hover:text-white py-2"><Gavel size={16} /> {t.manageArts}</Link>
                     ) : (
-                      <Link href="/become-artist" className="flex items-center gap-3 text-purple-400 hover:text-purple-300 py-2"><Sparkles size={16} /> Become Artist</Link>
+                      <Link href="/become-artist" className="flex items-center gap-3 text-purple-400 hover:text-purple-300 py-2"><Sparkles size={16} /> {t.becomeArtist}</Link>
                     )}
                   </>
                 )}
@@ -566,15 +606,15 @@ function HomePageContent() {
           <div className="w-full max-w-md bg-zinc-900 border-l border-zinc-800 p-6 flex flex-col justify-between h-full" onClick={(e) => e.stopPropagation()}>
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold flex items-center gap-2"><ShoppingCart size={22} className="text-purple-400" /> Your Cart</h3>
+                <h3 className="text-xl font-bold flex items-center gap-2"><ShoppingCart size={22} className="text-purple-400" /> {t.cart}</h3>
                 <button type="button" onClick={() => setCartOpen(false)} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white"><X size={20} /></button>
               </div>
 
               {cartStore.items.length === 0 ? (
                 <div className="text-center py-20 text-zinc-500">
                   <ShoppingCart size={48} className="mx-auto mb-4 opacity-30" />
-                  <p>Your cart is empty.</p>
-                  <p className="text-sm mt-1">Discover arts and add them here!</p>
+                  <p>{t.emptyCart}</p>
+                  <p className="text-sm mt-1">{t.discoverArtsDesc}</p>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
@@ -612,23 +652,23 @@ function HomePageContent() {
               <div className="border-t border-zinc-800 pt-6 mt-4 space-y-4">
                 <div className="space-y-2 text-sm text-zinc-400">
                   <div className="flex justify-between">
-                    <span>Subtotal</span>
+                    <span>{t.subtotal}</span>
                     <span className="text-white">{formatCurrency(cartStore.subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Admin Fee</span>
+                    <span>{t.adminFee}</span>
                     <span className="text-white">{formatCurrency(cartStore.adminFee)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Service Fee</span>
+                    <span>{t.serviceFee}</span>
                     <span className="text-white">{formatCurrency(cartStore.serviceFee)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Tax (1%)</span>
+                    <span>{t.tax}</span>
                     <span className="text-white">{formatCurrency(cartStore.tax)}</span>
                   </div>
                   <div className="flex justify-between text-base font-bold text-white pt-2 border-t border-zinc-800/50">
-                    <span>Total Amount</span>
+                    <span>{t.totalAmount}</span>
                     <span className="text-purple-400">{formatCurrency(cartStore.total)}</span>
                   </div>
                 </div>
@@ -639,9 +679,9 @@ function HomePageContent() {
                     onClick={handleCheckout}
                     disabled={cartStore.loading}
                   >
-                    Buy Now
+                    {t.buyNow}
                   </Button>
-                  <p className="text-[10px] text-center text-zinc-500">Secure transaction powered by B.Art Wallet</p>
+                  <p className="text-[10px] text-center text-zinc-500">{t.secureTransaction}</p>
                 </div>
               </div>
             )}
@@ -823,7 +863,7 @@ function HomePageContent() {
                     <div>
                       <h4 className="font-semibold text-sm text-white">{artist.username}</h4>
                       <span className="text-[9px] uppercase tracking-widest text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full mt-1 inline-block">
-                        {artist.badge || "COPPER"} ARTIST
+                        {getArtistBadgeLabel(artist.badge, language)}
                       </span>
                     </div>
                     <Link href={`/artist/${artist.id}`} className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 mt-1 transition">

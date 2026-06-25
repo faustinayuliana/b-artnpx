@@ -37,9 +37,10 @@ export async function POST(request: Request) {
       name: "b-art-token",
       value: token,
       httpOnly: true,
+      sameSite: "lax",
+      secure: true,
       path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
     });
     return response;
   }
@@ -80,9 +81,10 @@ export async function POST(request: Request) {
       name: "b-art-token",
       value: token,
       httpOnly: true,
+      sameSite: "lax",
+      secure: true,
       path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
     });
     return response;
   }
@@ -95,7 +97,8 @@ export async function POST(request: Request) {
       path: "/",
       expires: new Date(0),
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      secure: true,
     });
     return response;
   }

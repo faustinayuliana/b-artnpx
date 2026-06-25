@@ -18,7 +18,7 @@ export function comparePassword(password: string, hash: string) {
 
 export function createToken(user: AuthUser) {
   return jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, {
-    expiresIn: "30d",
+    expiresIn: "7d",
   });
 }
 
@@ -60,9 +60,10 @@ export async function setAuthCookie(token: string) {
     name: "b-art-token",
     value: token,
     httpOnly: true,
+    sameSite: "lax",
+    secure: true,
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 7,
   });
 }
 
@@ -74,7 +75,8 @@ export async function clearAuthCookie() {
     path: "/",
     expires: new Date(0),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    secure: true,
   });
 }
 

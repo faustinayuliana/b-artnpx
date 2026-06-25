@@ -18,14 +18,29 @@ import {
   LogOut,
   Edit3,
 } from "lucide-react";
-import { useAuthStore } from "@/src/lib/stores";
+import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
 import { formatCurrency } from "@/src/lib/format";
+import { translations } from "@/src/lib/translations";
 import toast, { Toaster } from "react-hot-toast";
 import { Modal } from "@/src/components/modal";
+
+const getArtistBadgeLabel = (badge: string | null | undefined, lang: string = "en") => {
+  const b = badge?.toUpperCase() || "COPPER";
+  const isIndo = lang === "id";
+  if (b === "PLATINUM" || b === "DIAMOND") {
+    return isIndo ? "Seniman Profesional 🥇" : "Professional Artist 🥇";
+  }
+  if (b === "SILVER" || b === "GOLD") {
+    return isIndo ? "Seniman Menengah 🥈" : "Intermediate Artist 🥈";
+  }
+  return isIndo ? "Seniman Pemula 🥉" : "Beginner Artist 🥉";
+};
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, setUser, reset: resetAuth } = useAuthStore();
+  const { language } = usePreferencesStore();
+  const t = translations[language] || translations.en;
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -37,6 +52,11 @@ export default function ProfilePage() {
       try {
         const res = await fetch("/api/user");
         if (!res.ok) {
+          if (res.status === 401) {
+            resetAuth();
+            localStorage.clear();
+            sessionStorage.clear();
+          }
           router.push("/login");
           return;
         }
@@ -49,7 +69,7 @@ export default function ProfilePage() {
       }
     };
     fetchData();
-  }, [router, setUser]);
+  }, [router, setUser, resetAuth]);
 
   useEffect(() => {
     if (!user) return;
@@ -75,6 +95,8 @@ export default function ProfilePage() {
     try {
       await fetch("/api/auth?action=logout", { method: "POST" });
       resetAuth();
+      localStorage.clear();
+      sessionStorage.clear();
       setShowLogoutConfirm(false);
       router.push("/");
       toast.success("Logged out successfully");
@@ -114,9 +136,11 @@ export default function ProfilePage() {
         title="Logout" 
         onClose={() => setShowLogoutConfirm(false)}
       >
-        <div className="space-y-4 p-2 text-zinc-800">
+        <div className="space-y-4 p-2 text-zinc-855">
           <p className="text-sm text-zinc-600 leading-relaxed">
-            Are you sure you want to log out of B.Art? You will need to sign in again to access your dashboard, settings, and cart.
+            {language === "id" 
+              ? "Apakah Anda yakin ingin keluar?"
+              : "Are you sure you want to logout?"}
           </p>
           <div className="flex gap-3 pt-2">
             <button
@@ -124,7 +148,7 @@ export default function ProfilePage() {
               className="flex-1 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-full transition text-sm"
               onClick={() => setShowLogoutConfirm(false)}
             >
-              Cancel
+              {language === "id" ? "Batal" : "Cancel"}
             </button>
             <button
               type="button"
@@ -152,7 +176,7 @@ export default function ProfilePage() {
             className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition px-3 py-2 rounded-xl hover:bg-zinc-900"
           >
             <Settings size={16} />
-            <span className="hidden sm:inline">Settings</span>
+            <span className="hidden sm:inline">{t.settings}</span>
           </Link>
           <button
             type="button"
@@ -160,7 +184,7 @@ export default function ProfilePage() {
             className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 px-3 py-2 rounded-xl hover:bg-red-950/20 transition"
           >
             <LogOut size={16} />
-            <span className="hidden sm:inline">Logout</span>
+            <span className="hidden sm:inline">{t.logout}</span>
           </button>
         </div>
       </header>
@@ -203,14 +227,15 @@ export default function ProfilePage() {
 
               {/* Badge */}
               <div className="inline-flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r ${badgeGradient} text-white shadow-lg`}>
-                  <Award size={12} />
-                  {user?.badge || "COPPER"} MEMBER
-                </span>
-                {user?.role === "ARTIST" && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-purple-600/20 text-purple-400 border border-purple-500/30">
-                    <Palette size={12} />
-                    ARTIST
+                {user?.role === "ARTIST" ? (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r ${badgeGradient} text-white shadow-lg`}>
+                    <Award size={12} />
+                    {getArtistBadgeLabel(user?.badge, language)}
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r ${badgeGradient} text-white shadow-lg`}>
+                    <Award size={12} />
+                    {user?.badge || "COPPER"} MEMBER
                   </span>
                 )}
               </div>

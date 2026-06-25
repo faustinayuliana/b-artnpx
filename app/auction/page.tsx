@@ -1,30 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Rocket,
-  ArrowLeft,
-  Mail,
-} from "lucide-react";
+import { Gavel, ArrowLeft, Mail } from "lucide-react";
+import { usePreferencesStore } from "@/src/lib/stores";
 
-export default function ComingSoonPage() {
+export default function AuctionComingSoonPage() {
   const router = useRouter();
-  const [count, setCount] = useState(7);
+  const { language } = usePreferencesStore();
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCount((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const isIndo = language === "id";
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center px-6 relative overflow-hidden">
@@ -35,38 +19,33 @@ export default function ComingSoonPage() {
       <div className="relative z-10 text-center space-y-8 max-w-xl w-full">
         {/* Icon */}
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-[1.5rem] bg-gradient-to-br from-purple-600 to-blue-600 shadow-2xl mx-auto animate-bounce">
-          <Rocket size={36} className="text-white" />
+          <Gavel size={36} className="text-white" />
         </div>
 
         {/* Brand */}
         <div>
-          <p className="text-xs font-bold tracking-[0.4em] text-purple-400 uppercase mb-2">B.Art</p>
+          <p className="text-xs font-bold tracking-[0.4em] text-purple-400 uppercase mb-2">B.Art Auctions</p>
           <h1 className="text-5xl sm:text-6xl font-bold font-serif leading-tight" style={{ fontFamily: "var(--font-playfair), serif" }}>
-            Coming Soon
+            {isIndo ? "Segera Hadir" : "Coming Soon"}
           </h1>
           <p className="text-zinc-400 mt-4 text-base leading-relaxed">
-            This feature is under development. We're working hard to bring you an amazing experience!
+            {isIndo 
+              ? "Ikuti pelelangan karya seni digital secara langsung dan interaktif. Dapatkan karya paling langka dan eksklusif melalui penawaran real-time!"
+              : "Participate in live and interactive digital artwork auctions. Acquire the rarest and most exclusive creations through real-time bidding wars!"}
           </p>
         </div>
 
         {/* Divider */}
         <div className="flex items-center gap-4">
           <div className="flex-1 h-px bg-zinc-800" />
-          <span className="text-xs text-zinc-600 uppercase tracking-widest">Stay Tuned</span>
+          <span className="text-xs text-zinc-600 uppercase tracking-widest">{isIndo ? "TETAP PANTAU" : "STAY TUNED"}</span>
           <div className="flex-1 h-px bg-zinc-800" />
         </div>
 
         <div className="flex items-center justify-center gap-4">
-          {[
-            { icon: Mail, label: "hello@b.art" },
-          ].map(({ icon: Icon, label }) => (
-            <div
-              key={label}
-              className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-xs text-zinc-400 hover:text-white transition cursor-pointer"
-            >
-              <Icon size={13} /> {label}
-            </div>
-          ))}
+          <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-xs text-zinc-400 hover:text-white transition cursor-pointer">
+            <Mail size={13} /> contact@b.art
+          </div>
         </div>
 
         {/* Back button */}
@@ -74,9 +53,9 @@ export default function ComingSoonPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-zinc-800 text-sm text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-zinc-800 text-sm text-zinc-450 hover:text-white hover:border-zinc-700 transition"
           >
-            <ArrowLeft size={16} /> Go Back
+            <ArrowLeft size={16} /> {isIndo ? "Kembali" : "Go Back"}
           </button>
         </div>
       </div>

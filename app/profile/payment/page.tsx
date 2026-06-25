@@ -5,33 +5,33 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft,
-  Plus,
   CreditCard,
-  Trash2,
+  Plus,
   Star,
   Wallet,
   ArrowRight,
   Sparkles,
   X,
 } from "lucide-react";
-import { useAuthStore } from "@/src/lib/stores";
+import { useAuthStore, usePreferencesStore } from "@/src/lib/stores";
 import toast, { Toaster } from "react-hot-toast";
 
 const PROVIDERS = [
-  { name: "Mandiri", type: "BANK_TRANSFER", bg: "from-blue-700 to-indigo-900", logo: "🏦" },
-  { name: "BCA", type: "BANK_TRANSFER", bg: "from-sky-600 to-blue-800", logo: "🏦" },
-  { name: "BNI", type: "BANK_TRANSFER", bg: "from-teal-600 to-emerald-800", logo: "🏦" },
-  { name: "BRI", type: "BANK_TRANSFER", bg: "from-blue-600 to-cyan-700", logo: "🏦" },
-  { name: "OVO", type: "E_WALLET", bg: "from-purple-700 to-indigo-800", logo: "💜" },
-  { name: "Dana", type: "E_WALLET", bg: "from-blue-500 to-sky-600", logo: "💙" },
-  { name: "ShopeePay", type: "E_WALLET", bg: "from-orange-500 to-red-600", logo: "🧡" },
-  { name: "GoPay", type: "E_WALLET", bg: "from-emerald-500 to-teal-600", logo: "💚" },
-  { name: "B.Art Wallet", type: "WALLET", bg: "from-fuchsia-600 to-purple-800", logo: "🎨" },
+  { key: "mandiri", name: "Mandiri", type: "BANK_TRANSFER", bg: "from-blue-700 to-indigo-900", logo: "🏦" },
+  { key: "bca", name: "BCA", type: "BANK_TRANSFER", bg: "from-sky-600 to-blue-800", logo: "🏦" },
+  { key: "bni", name: "BNI", type: "BANK_TRANSFER", bg: "from-teal-600 to-emerald-800", logo: "🏦" },
+  { key: "bri", name: "BRI", type: "BANK_TRANSFER", bg: "from-blue-600 to-cyan-700", logo: "🏦" },
+  { key: "ovo", name: "OVO", type: "E_WALLET", bg: "from-purple-700 to-indigo-800", logo: "💜" },
+  { key: "dana", name: "Dana", type: "E_WALLET", bg: "from-blue-500 to-sky-600", logo: "💙" },
+  { key: "gopay", name: "GoPay", type: "E_WALLET", bg: "from-emerald-500 to-teal-600", logo: "💚" },
+  { key: "shopeepay", name: "ShopeePay", type: "E_WALLET", bg: "from-orange-500 to-red-600", logo: "🧡" },
+  { key: "wallet", name: "B.Art Wallet", type: "WALLET", bg: "from-fuchsia-600 to-purple-800", logo: "🎨" },
 ];
 
 export default function PaymentMethodsPage() {
   const router = useRouter();
-  const { user, isGuest } = useAuthStore();
+  const { user, isGuest, setUser, reset: resetAuth } = useAuthStore();
+  const { language } = usePreferencesStore();
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -42,6 +42,33 @@ export default function PaymentMethodsPage() {
   const [payNumber, setPayNumber] = useState("");
   const [payIsPrimary, setPayIsPrimary] = useState(false);
 
+  const forceLogout = () => {
+    resetAuth();
+    localStorage.clear();
+    sessionStorage.clear();
+    router.push("/login");
+  };
+
+  const fetchPayments = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/user");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+        setPayments(data.payments || []);
+      } else {
+        if (res.status === 401) {
+          forceLogout();
+        }
+      }
+    } catch {
+      toast.error(language === "id" ? "Gagal memuat metode pembayaran" : "Failed to load payment methods");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isGuest) {
       router.push("/login");
@@ -50,25 +77,10 @@ export default function PaymentMethodsPage() {
     fetchPayments();
   }, [isGuest]);
 
-  const fetchPayments = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/user");
-      if (res.ok) {
-        const data = await res.json();
-        setPayments(data.payments || []);
-      }
-    } catch {
-      toast.error("Failed to load payment methods");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payNumber) {
-      toast.error("Account or Wallet number is required");
+      toast.error(language === "id" ? "Nomor rekening atau e-wallet wajib diisi" : "Account or Wallet number is required");
       return;
     }
 
@@ -86,12 +98,16 @@ export default function PaymentMethodsPage() {
       });
 
       if (res.ok) {
-        toast.success("Payment method added successfully");
+        toast.success(language === "id" ? "Metode pembayaran berhasil ditambahkan" : "Payment method added successfully");
         setFormOpen(false);
         setPayNumber("");
         setPayIsPrimary(false);
         fetchPayments();
       } else {
+        if (res.status === 401) {
+          forceLogout();
+          return;
+        }
         const data = await res.json();
         toast.error(data.error || "Failed to add payment method");
       }
@@ -103,7 +119,7 @@ export default function PaymentMethodsPage() {
   };
 
   const handleSetPrimary = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // prevent navigation
+    e.stopPropagation(); // prevent card click navigation
     try {
       const res = await fetch("/api/user?action=payment-set-primary", {
         method: "POST",
@@ -111,19 +127,19 @@ export default function PaymentMethodsPage() {
         body: JSON.stringify({ id }),
       });
       if (res.ok) {
-        toast.success("Primary payment method updated");
+        toast.success(language === "id" ? "Metode utama berhasil diperbarui" : "Primary payment method updated");
         fetchPayments();
       } else {
+        if (res.status === 401) {
+          forceLogout();
+          return;
+        }
         const data = await res.json();
         toast.error(data.error || "Failed to update primary payment");
       }
     } catch {
       toast.error("Something went wrong");
     }
-  };
-
-  const getProviderDetails = (bankName: string) => {
-    return PROVIDERS.find((p) => p.name.toLowerCase() === bankName.toLowerCase()) || PROVIDERS[0];
   };
 
   if (isGuest) return null;
@@ -135,7 +151,7 @@ export default function PaymentMethodsPage() {
       {/* NAVBAR */}
       <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
         <Link href="/profile" className="flex items-center gap-2 text-zinc-400 hover:text-white transition font-semibold text-sm">
-          <ChevronLeft size={18} /> Back to Profile
+          <ChevronLeft size={18} /> {language === "id" ? "Kembali ke Profil" : "Back to Profile"}
         </Link>
         <span className="text-2xl font-bold font-serif bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent" style={{ fontFamily: "var(--font-playfair), serif" }}>
           B.Art
@@ -148,89 +164,93 @@ export default function PaymentMethodsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold font-serif text-white flex items-center gap-2" style={{ fontFamily: "var(--font-playfair), serif" }}>
-              <CreditCard size={24} className="text-purple-400" /> Payment Methods
+              <CreditCard size={24} className="text-purple-400" /> {language === "id" ? "Metode Pembayaran" : "Payment Methods"}
             </h1>
-            <p className="text-zinc-400 text-sm">Manage your linked bank accounts, e-wallets, and B.Art Wallet for purchasing and commissions.</p>
+            <p className="text-zinc-400 text-sm">
+              {language === "id" 
+                ? "Kelola rekening bank, dompet digital, dan B.Art Wallet Anda untuk pembelian karya seni."
+                : "Manage your bank accounts, e-wallets, and B.Art Wallet for purchasing digital artwork."}
+            </p>
           </div>
 
           <button
             type="button"
             onClick={() => setFormOpen(true)}
-            className="inline-flex items-center gap-2 text-sm text-purple-950 bg-white hover:bg-zinc-100 font-bold px-5 py-3 rounded-full transition self-start sm:self-auto shadow-lg shadow-white/5"
+            className="inline-flex items-center gap-2 text-sm text-purple-955 bg-white hover:bg-zinc-100 font-bold px-5 py-3 rounded-full transition self-start sm:self-auto shadow-lg shadow-white/5"
           >
-            <Plus size={16} /> Add Payment Method
+            <Plus size={16} /> {language === "id" ? "Tambah Metode" : "Add Payment"}
           </button>
         </div>
 
-        {/* LIST */}
+        {/* 9 PROVIDERS GRID */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[...Array(2)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <div key={i} className="animate-pulse bg-zinc-900 border border-zinc-800 rounded-3xl h-48 w-full"></div>
             ))}
           </div>
-        ) : payments.length === 0 ? (
-          <div className="text-center py-20 bg-zinc-900/20 border border-dashed border-zinc-800 rounded-3xl space-y-4">
-            <CreditCard size={48} className="mx-auto text-zinc-700 animate-pulse" />
-            <div className="space-y-1">
-              <h4 className="font-bold text-white text-lg">No Payment Methods Linked</h4>
-              <p className="text-xs text-zinc-500 max-w-sm mx-auto">Link a bank account or e-wallet to purchase digital assets seamlessly and withdraw commission earnings.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFormOpen(true)}
-              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-full text-xs font-bold transition"
-            >
-              Link Now
-            </button>
-          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {payments.map((payment) => {
-              const prov = getProviderDetails(payment.bank);
+            {PROVIDERS.map((provider) => {
+              // Find if this provider has been linked by the user
+              const linkedPayment = payments.find(
+                (p) => p.bank.toLowerCase() === provider.name.toLowerCase()
+              );
+
               return (
                 <div
-                  key={payment.id}
-                  onClick={() => router.push(`/profile/payment/${payment.id}`)}
-                  className={`relative overflow-hidden rounded-[2rem] p-6 border border-zinc-800/80 bg-gradient-to-br ${prov.bg} shadow-2xl hover:scale-[1.02] transition cursor-pointer group`}
+                  key={provider.key}
+                  onClick={() => router.push(`/payment/${provider.key}`)}
+                  className={`relative overflow-hidden rounded-[2rem] p-6 border transition cursor-pointer group flex flex-col justify-between aspect-[1.586] hover:scale-[1.02] duration-300 ${
+                    linkedPayment 
+                      ? `bg-gradient-to-br ${provider.bg} border-zinc-800/80 shadow-2xl`
+                      : "bg-zinc-900/40 border-zinc-850 hover:border-zinc-700/80 opacity-60 hover:opacity-100"
+                  }`}
                 >
                   {/* Decorative mesh */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
-                  <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-black/20 rounded-full blur-xl pointer-events-none" />
                   
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start z-10">
                     <div className="space-y-1">
-                      <span className="text-xs font-bold tracking-widest text-white/70 uppercase font-mono">
-                        {payment.type === "BANK_TRANSFER" ? "BANK ACCOUNT" : "E-WALLET"}
+                      <span className="text-[10px] font-bold tracking-widest text-white/70 uppercase font-mono">
+                        {provider.type === "BANK_TRANSFER" ? "BANK ACCOUNT" : provider.type === "WALLET" ? "B.ART WALLET" : "E-WALLET"}
                       </span>
                       <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <span>{prov.logo}</span> {payment.bank}
+                        <span>{provider.logo}</span> {provider.name}
                       </h3>
                     </div>
 
                     <div className="flex gap-2">
-                      {payment.isPrimary ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 backdrop-blur-md">
-                          <Star size={10} className="fill-white" /> PRIMARY
-                        </span>
+                      {linkedPayment ? (
+                        linkedPayment.isPrimary ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30 backdrop-blur-md">
+                            <Star size={10} className="fill-white" /> PRIMARY
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => handleSetPrimary(e, linkedPayment.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/20 text-white/75 hover:bg-white/20 hover:text-white transition border border-white/10"
+                            title="Set as Primary"
+                          >
+                            {language === "id" ? "Jadikan Utama" : "Make Primary"}
+                          </button>
+                        )
                       ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => handleSetPrimary(e, payment.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/20 text-white/75 hover:bg-white/20 hover:text-white transition border border-white/10"
-                          title="Set as Primary"
-                        >
-                          Make Primary
-                        </button>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-zinc-800/80 text-zinc-550 border border-zinc-800/40">
+                          {language === "id" ? "BELUM TERHUBUNG" : "NOT LINKED"}
+                        </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-12 flex justify-between items-end">
+                  <div className="mt-12 flex justify-between items-end z-10">
                     <div className="space-y-1">
-                      <p className="text-[10px] text-white/60 tracking-widest font-mono font-medium">ACCOUNT NUMBER</p>
-                      <p className="text-lg font-mono font-semibold tracking-wider text-white">
-                        {payment.number.replace(/(.{4})/g, "$1 ").trim()}
+                      <p className="text-[9px] text-white/60 tracking-widest font-mono font-medium">ACCOUNT NUMBER</p>
+                      <p className="text-base font-mono font-semibold tracking-wider text-white">
+                        {linkedPayment
+                          ? linkedPayment.number.replace(/(.{4})/g, "$1 ").trim()
+                          : "•••• •••• ••••"}
                       </p>
                     </div>
 
@@ -247,7 +267,7 @@ export default function PaymentMethodsPage() {
 
       {/* ADD PAYMENT MODAL */}
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 animate-fadeIn">
           <div className="w-full max-w-md bg-zinc-900 border border-zinc-850 rounded-[2rem] p-8 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
@@ -258,17 +278,21 @@ export default function PaymentMethodsPage() {
             </button>
 
             <h3 className="text-xl font-bold font-serif text-white mb-1 flex items-center gap-2">
-              <Plus size={20} className="text-purple-400" /> Link Payment Method
+              <Plus size={20} className="text-purple-400" /> {language === "id" ? "Hubungkan Metode Pembayaran" : "Link Payment Method"}
             </h3>
-            <p className="text-xs text-zinc-400 mb-6">Choose a provider and enter your details to link a new payment method.</p>
+            <p className="text-xs text-zinc-400 mb-6">
+              {language === "id" 
+                ? "Pilih penyedia layanan dan masukkan rincian nomor rekening Anda."
+                : "Choose a provider and enter your details to link a new payment method."}
+            </p>
 
             <form onSubmit={handleAddPayment} className="space-y-5 text-sm">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-450 uppercase tracking-wider">Select Provider</label>
+                <label className="text-xs font-bold text-zinc-450 uppercase tracking-wider">{language === "id" ? "Pilih Penyedia" : "Select Provider"}</label>
                 <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
                   {PROVIDERS.map((prov) => (
                     <button
-                      key={prov.name}
+                      key={prov.key}
                       type="button"
                       onClick={() => setSelectedProvider(prov)}
                       className={`flex flex-col items-center justify-center py-3 px-2 rounded-xl border transition text-center ${
@@ -286,7 +310,9 @@ export default function PaymentMethodsPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-zinc-455 uppercase tracking-wider">
-                  {selectedProvider.type === "BANK_TRANSFER" ? "Account Number" : "Wallet Phone Number"}
+                  {selectedProvider.type === "BANK_TRANSFER" 
+                    ? (language === "id" ? "Nomor Rekening" : "Account Number") 
+                    : (language === "id" ? "Nomor Telepon E-Wallet" : "Wallet Phone Number")}
                 </label>
                 <input
                   type="text"
@@ -307,7 +333,7 @@ export default function PaymentMethodsPage() {
                   className="w-4 h-4 rounded text-purple-600 bg-zinc-850 border-zinc-800 focus:ring-purple-500"
                 />
                 <label htmlFor="primary" className="text-xs font-semibold text-zinc-300 select-none cursor-pointer">
-                  Set as Primary Payment Method
+                  {language === "id" ? "Jadikan Metode Pembayaran Utama" : "Set as Primary Payment Method"}
                 </label>
               </div>
 
@@ -315,9 +341,9 @@ export default function PaymentMethodsPage() {
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
-                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-bold rounded-full transition text-xs"
+                  className="flex-1 py-3 bg-zinc-805 hover:bg-zinc-750 text-zinc-300 font-bold rounded-full transition text-xs"
                 >
-                  Cancel
+                  {language === "id" ? "Batal" : "Cancel"}
                 </button>
                 <button
                   type="submit"
@@ -327,7 +353,7 @@ export default function PaymentMethodsPage() {
                   {saving ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-950 border-t-transparent" />
                   ) : (
-                    "Link Method"
+                    language === "id" ? "Hubungkan" : "Link Method"
                   )}
                 </button>
               </div>

@@ -8,7 +8,7 @@ import { useAuthStore } from "@/src/lib/stores";
 
 export default function LandingPage() {
   const router = useRouter();
-  const { user, setUser, setGuest } = useAuthStore();
+  const { user, setUser, setGuest, reset: resetAuth } = useAuthStore();
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
@@ -23,6 +23,11 @@ export default function LandingPage() {
           setUser(userData);
           router.push("/home");
         } else {
+          if (res.status === 401) {
+            resetAuth();
+            localStorage.clear();
+            sessionStorage.clear();
+          }
           setCheckingAuth(false);
         }
       } catch {
@@ -31,7 +36,7 @@ export default function LandingPage() {
     };
 
     checkAuth();
-  }, [router, setUser]);
+  }, [router, setUser, resetAuth]);
 
   if (checkingAuth) {
     return (
